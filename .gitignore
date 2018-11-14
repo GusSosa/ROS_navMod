@@ -115,3 +115,6 @@ Generated_Source/
 
 # Ignore .DS_Store on Macs
 .DS_Store
+
+# and temporary emacs files.
+*~
