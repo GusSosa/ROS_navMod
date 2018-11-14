@@ -102,3 +102,16 @@ venv.bak/
 
 # mypy
 .mypy_cache/
+
+# PSoC Creator Files to ignore (Drew 2018-04-05)
+codegentemp/
+CortexM3/
+Export/
+Generated_Source/
+
+# More PSoC Creator files to ignore (Henry 2018-11-08)
+*.log
+*_timing.html
+
+# Ignore .DS_Store on Macs
+.DS_Store
