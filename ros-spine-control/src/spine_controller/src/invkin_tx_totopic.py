@@ -28,20 +28,32 @@ def tx_to_topic(file_name):
 	# A welcome message
 	print("Running invkin_tx_totopic with file:")
 	print(file_name)
-	print(" and python version:")
+	print("and python version:")
 	print(sys.version)
 	# First, start up the ros node.
 	rospy.init_node('invkin_tx_commands', anonymous=True)
 	# We need a publisher. Note we're using the numpy message type, wrapping
 	# around the standard message type
-	pub = rospy.Publisher('invkin_tx_totopic', numpy_msg(Float32MultiArray), queue_size=10)
+	pub = rospy.Publisher('invkin_tx_commands', numpy_msg(Float32MultiArray), queue_size=10)
 	# Then, read in the csv file.
+	# The 3rd row (counting from 0) contains the parameters for this run, and is
+	# of mixed type: int, string, int, int, int, string
+	# let's try with autodetection of type. Only want 1 row.
+	invkin_header = np.genfromtxt(file_name, dtype=None, delimiter=",", \
+		skip_header=3, max_rows=1)
+	print("Using an inverse kinematics file with the parameters:")
+	print(invkin_header)
+	# Then, read the data itself. Starts two rows down from header.
+	invkin_data = np.genfromtxt(file_name, dtype=None, delimiter=",", \
+		skip_header=5)
+	#print(invkin_data.shape)
+
 	# Create a timer object that will sleep long enough to result in
   	# a 10Hz publishing rate
-  	r = rospy.Rate(1) # hz
+  	r = rospy.Rate(100) # hz
   	# We'll keep track of rows: we only want to publish until the end of the CSV file.
-  	# HARDCODE FOR NOW - pull from CSV later. Off-by-one: 400 points = 0 to 399.
-  	max_timestep = 399;
+  	# max timestep is number of rows.
+  	max_timestep = invkin_data.shape[0]
   	# initialize the counter
   	current_timestep = 0;
 
@@ -50,15 +62,17 @@ def tx_to_topic(file_name):
 	
 	# We iterate through the array until the end
 	# but also need to catch shutdown signals.
-	while (current_timestep <= max_timestep) and not rospy.is_shutdown():
+	while (current_timestep < max_timestep) and not rospy.is_shutdown():
 		# Create the message itself
 		to_publish = Float32MultiArray()
 		# Put in the numpy array
-		to_publish.data = np.array([0.5, 0.5, 0.5, 0.5])
+		#to_publish.data = np.array([0.5, 0.5, 0.5, 0.5])
+		to_publish.data = invkin_data[current_timestep, :]
 		# Publish the current_timestep-th message
 		pub.publish(to_publish)
 		# Echo to the terminal
-		#print("Timestep ", current_timestep, ", publishing ", to_publish.data)
+		print("Timestep " + str(current_timestep) + ", publishing:")
+		print(to_publish.data)
 		# increment the counter
 		current_timestep += 1
 		# sleep until the next output
