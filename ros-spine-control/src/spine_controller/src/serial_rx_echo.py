@@ -17,7 +17,8 @@ import serial
 from std_msgs.msg import String
 
 # The primary helper function here opens the serial device,
-# and blocking-ly reads lines from it until stopped.
+# and iteratively reads lines from it until stopped.
+# frustratingly enough, hardware interrupts are difficult on linux, so we poll the device at some interval
 def echo_to_terminal(device_name):
 	# A welcome message
 	print("Running serial_rx_echo node with device:")
@@ -36,6 +37,9 @@ def echo_to_terminal(device_name):
 	psoc_baud = 115200
 	# create the serial port object
 	serial_port = serial.Serial(device_name, psoc_baud, timeout=serial_timeout)
+	# flush out any old data
+	serial_port.reset_input_buffer()
+	serial_port.reset_output_buffer()
 	# finishing setup.
 	print("Opened port, now echoing. Ctrl-C to stop.")
 	
