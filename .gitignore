@@ -125,7 +125,7 @@ Generated_Source/
 *.cydsn/codegentemp
 *.cydsn/CortexM3
 *.cydsn/Generated_Source
-
+*.svd
 
 # Ignore .DS_Store on Macs
 .DS_Store
