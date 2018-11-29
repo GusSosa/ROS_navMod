@@ -113,6 +113,20 @@ Generated_Source/
 *.log
 *_timing.html
 
+# For PSoC Creator (from https://community.cypress.com/thread/18187?start=0&tstart=0)
+*.cywrk.*
+*.cyprj.*
+*.cycdx
+*.cyfit
+*.rpt
+*.uvopt
+*.uvproj
+*_timing.html
+*.cydsn/codegentemp
+*.cydsn/CortexM3
+*.cydsn/Generated_Source
+
+
 # Ignore .DS_Store on Macs
 .DS_Store
 
