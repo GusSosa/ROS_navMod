@@ -21,10 +21,9 @@ from std_msgs.msg import String
 # and writes to it from raw_input.
 def tx_to_serial(device_name):
 	# A welcome message
-	print("Running serial_tx_cmdline node with device:")
-	print(device_name)
-	print(" and python version:")
-	print(sys.version)
+	print("Running serial_tx_cmdline node with device: " + device_name)
+	#print(" and python version:")
+	#print(sys.version)
 	# Hard-code a timeout for pyserial. Seems recommended, even for tx?
 	serial_timeout = 1;
 	# First, start up the ros node.
