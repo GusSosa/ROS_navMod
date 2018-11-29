@@ -26,10 +26,9 @@ from std_msgs.msg import Float32MultiArray
 # to a topic at a hard-coded interval
 def tx_to_topic(file_name):
 	# A welcome message
-	print("Running invkin_tx_totopic with file:")
-	print(file_name)
-	print("and python version:")
-	print(sys.version)
+	print("Running invkin_tx_totopic with file: " + file_name)
+	#print("and python version:")
+	#print(sys.version)
 	# First, start up the ros node.
 	rospy.init_node('invkin_tx_commands', anonymous=True)
 	# We need a publisher. Note we're using the numpy message type, wrapping
@@ -49,8 +48,8 @@ def tx_to_topic(file_name):
 	#print(invkin_data.shape)
 
 	# Create a timer object that will sleep long enough to result in
-  	# a 10Hz publishing rate
-  	r = rospy.Rate(100) # hz
+  	# a reasonable publishing rate
+  	r = rospy.Rate(1) # hz
   	# We'll keep track of rows: we only want to publish until the end of the CSV file.
   	# max timestep is number of rows.
   	max_timestep = invkin_data.shape[0]

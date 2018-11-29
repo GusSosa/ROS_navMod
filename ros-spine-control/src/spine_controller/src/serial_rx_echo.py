@@ -21,10 +21,9 @@ from std_msgs.msg import String
 # frustratingly enough, hardware interrupts are difficult on linux, so we poll the device at some interval
 def echo_to_terminal(device_name):
 	# A welcome message
-	print("Running serial_rx_echo node with device:")
-	print(device_name)
-	print(" and python version:")
-	print(sys.version)
+	print("Running serial_rx_echo node with device: " + device_name)
+	#print(" and python version:")
+	#print(sys.version)
 	# Hard-code a timeout for pyserial. This way, we can capture keyboard interrupts.
 	# In seconds, presumably.
 	serial_timeout = 1;
