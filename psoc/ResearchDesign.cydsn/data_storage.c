@@ -18,6 +18,6 @@
 // and then define the corresponding variables.
 // Although this looks wrong, it's actually how you have to do it:
 // one with "extern" which only declares, and one without that actually defines.
-float current_control[NUM_MOTORS];
+float current_control[NUM_MOTORS] = {0.0, 0.0, 0.0, 0.0};
 
 /* [] END OF FILE */

@@ -60,8 +60,9 @@ CY_ISR( Interrupt_Handler_UART_Receive ){
             // First, terminate the string. This is for the use of sscanf below.
             receive_buffer[num_chars_received] = '\0';
             // Print back the newline/carriage return, to complete the "respond back to the terminal" code
-            // under linux, seems we only need newline.
-            UART_PutString("\n");
+            // Note: for files, linux needs \n whereas windows needs \r\n, but for terminals,
+            // it seems that both want \r\n (CR+LF).
+            UART_PutString("\r\n");
             // Call the helper function to actually set the PWM
             UART_Command_Parser();
             break;
@@ -100,13 +101,13 @@ void UART_Command_Parser() {
     switch(cmd) {
         case 'x':
             // Added functionality: if the user types an x, then the PWM stops.
-            sprintf(transmit_buffer, "Stopping PWM.\n");
+            sprintf(transmit_buffer, "Stopping PWM.\r\n");
             //PWM_Servo_Stop();
             break;
             
         case 'e':
             // Similarly, type e to enable.
-            sprintf(transmit_buffer, "Enabling PWM.\n");
+            sprintf(transmit_buffer, "Enabling PWM.\r\n");
             //PWM_Servo_Start();
             break;
             
@@ -118,25 +119,25 @@ void UART_Command_Parser() {
             // Print out a message according to how much was parsed.
             if( num_filled == 4 ){
                 // Return the resulting data that was stored.
-                sprintf(transmit_buffer, "Stored an input of %f, %f, %f, %f\n", current_control[0],
+                sprintf(transmit_buffer, "Stored an input of %f, %f, %f, %f\r\n", current_control[0],
                     current_control[1], current_control[2], current_control[3]);
             }
             else {
                 // did not receive exactly 4 control inputs.
-                sprintf(transmit_buffer, "Error!! You typed %s, which gave %i control inputs when 4 were expected.\n", receive_buffer, num_filled);
+                sprintf(transmit_buffer, "Error!! You typed %s, which gave %i control inputs when 4 were expected.\r\n", receive_buffer, num_filled);
             }
             break;
             
         case 'q':
             // query the state of the store control commands.
-            sprintf(transmit_buffer, "Current control inputs are %f, %f, %f, %f\n", current_control[0],
+            sprintf(transmit_buffer, "Current control inputs are %f, %f, %f, %f\r\n", current_control[0],
                     current_control[1], current_control[2], current_control[3]);
             break;
             
         case 's':
             // hard shutdown, kill everything. "The Big Red Button."
             // To-do: implement this
-            sprintf(transmit_buffer, "Hard Stop. TO-DO: IMPLEMENT THIS.\n");
+            sprintf(transmit_buffer, "Hard Stop. TO-DO: IMPLEMENT THIS.\r\n");
             break;
             
         case 'w':
@@ -152,12 +153,12 @@ void UART_Command_Parser() {
             UART_ClearRxBuffer();
             UART_ClearTxBuffer();
             // still need to specify some message to send back to the terminal.
-            sprintf(transmit_buffer, "Cleared RX and TX buffers for the UART on the PSoC.\n");
+            sprintf(transmit_buffer, "Cleared RX and TX buffers for the UART on the PSoC.\r\n");
             break;
             
         default:
             // In any other case, report an error.
-            sprintf(transmit_buffer, "Error! Command not recognized!\n");
+            sprintf(transmit_buffer, "Error! Command not recognized!\r\n");
             break;
         
     }
@@ -172,18 +173,18 @@ void UART_Command_Parser() {
 // UPDATE THIS when new functionality is added.
 void UART_Welcome_Message(){
     
-    UART_PutString("\n2D Spine Controller Test.\n");
-    UART_PutString("Copyright 2018 Berkeley Emergent Space Tensegrities Lab.\n");
-    UART_PutString("Usage: send strings of the form (char) (optional_args). Currently supported:\n");
-    UART_PutString("(NOTE: THESE MUST BE FOLLOWED EXACTLY, with exact spacing.)\n\n");
-    UART_PutString("e = enable PWM\n");
-    UART_PutString("x = disable PWM\n");
-    UART_PutString("q = query currently-stored control input\n");
-    UART_PutString("s = hard stop. The Big Red Button. (hopefully.)\n");
-    UART_PutString("w = echo back this welcome message \n");
-    UART_PutString("c = clear all UART tx/rx buffers on the PSoC \n");
-    UART_PutString("u float float float float = assign control input\n\n");
-    UART_PutString("Remember to set your terminal's newline to LF or automatic detection. (TeraTerm: Setup -> Terminal -> New-line).\n\n");
+    UART_PutString("\r\n2D Spine Controller Test.\r\n");
+    UART_PutString("Copyright 2018 Berkeley Emergent Space Tensegrities Lab.\r\n");
+    UART_PutString("Usage: send strings of the form (char) (optional_args). Currently supported:\r\n");
+    UART_PutString("(NOTE: THESE MUST BE FOLLOWED EXACTLY, with exact spacing.)\r\n\n");
+    UART_PutString("e = enable PWM\r\n");
+    UART_PutString("x = disable PWM\r\n");
+    UART_PutString("q = query currently-stored control input\r\n");
+    UART_PutString("s = hard stop. The Big Red Button. (hopefully.)\r\n");
+    UART_PutString("w = echo back this welcome message\r\n");
+    UART_PutString("c = clear all UART tx/rx buffers on the PSoC \r\n");
+    UART_PutString("u float float float float = assign control input\r\n\n");
+    //UART_PutString("Remember to set your terminal's newline to LF or automatic detection. (TeraTerm: Setup -> Terminal -> New-line).\n\n");
 }
 
 /* [] END OF FILE */
