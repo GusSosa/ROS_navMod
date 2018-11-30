@@ -43,26 +43,32 @@ class SerialTxFromTopic:
 		# The ndarray is in 
 		invkin_command = np.array(message.data)
 		# Let's do a string with the following format, which seems to work OK on the PSoC:
-		# u:(rl1):(rl2):...:(rln)
+		# u (rl1) (rl2) ... (rln)
 		# For example,
-		# u:0.02:0.476:0.87:0.05
+		# u 0.02 0.476 0.87 0.05
 		# The PSoC will then parse the first character as a command (u = this is a control input)
-		# and then the remaining numbers within the colons as floating point numbers.
-		# **NOTE that it's probably bad to do more than a 32-character message over UART, that's pretty long.
+		# and then the remaining numbers with spaces between them.
+
+		# A discussion on the length of the string:
+		# It may be bad to do more than a 32-character message over UART, that's pretty long.
 		# So if we've got 4 cables with 4 colons and a "u", that leaves (32 - 5)/4 = 6 characters per 
 		# control input. That's 4 digits after the decimal (since we'll never have more than a 1 meter command.)
+
+		# As of 2018-11-29, the PSoC code has a 128-bit receive buffer for UART strings.
+		# That means we can do much longer strings. Arbitrarily, choose 6 decimal places.
+		# Check: something something single-precision floating point??
+		# (again recalling that our invkin outputs are in meters, which will never be greater than 1,
+		# so the floats will always be 0.something.)
+
 		# Thanks to our friends on stackoverflow (https://stackoverflow.com/questions/21008858/formatting-floats-in-a-numpy-array),
 		# a nice way to format w/ only certain precision is
-		ik_cmd_formatter = lambda x: "%.4f" % x
+		ik_cmd_formatter = lambda x: "%.8f" % x
 		# The result string will be
-		cmd_string = "u:"
+		cmd_string = "u"
 		# and we can concatenate each float to it.
 		for i in range(invkin_command.shape[-1]):
-			# Add to the command string
-			cmd_string += str(ik_cmd_formatter(invkin_command[i]))
-			# and add a colon afterward
-			# **NOTE: this tacks on a trailing colon. Does this matter for PSoC's sscanf?
-			cmd_string += ":"
+			# Add to the command string, with a preceeding space
+			cmd_string += " " + str(ik_cmd_formatter(invkin_command[i]))
 		# tack on a newline, since the PSoC requires that.
 		cmd_string += "\n"
 
