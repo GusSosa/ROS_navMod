@@ -114,16 +114,9 @@ int main(void) {
 //    Timer_Start();
     UART_Start();
     
-    // A welcome message
-    UART_PutString("\n2D Spine Controller Test.\n");
-    UART_PutString("Copyright 2018 Berkeley Emergent Space Tensegrities Lab.\n");
-    UART_PutString("Usage: send strings of the form (char) (optional_args). Currently supported:\n");
-    UART_PutString("**NOTE: THESE MUST BE FOLLOWED EXACTLY, with exact spacing.\n\n");
-    UART_PutString("e = enable PWM\n");
-    UART_PutString("x = disable PWM\n");
-    UART_PutString("q = query currently-stored control input\n");
-    UART_PutString("s = hard stop. The Big Red Button. (hopefully.)\n");
-    UART_PutString("u float float float float = assign control input\n\n");
+    // Print a welcome message. Comes from uart_helper_fcns.
+    UART_Welcome_Message();
+
     //Pin_High_Write(1);
     //Pin_Low_Write(0);
     for(;;)

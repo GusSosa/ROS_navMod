@@ -37,6 +37,10 @@ CY_ISR( Interrupt_Handler_UART_Receive );
 // The command parser itself. Does the writing to and from variables and whatnot.
 void UART_Command_Parser();
 
+// A function that outputs the welcome message.
+// This is useful when people want to be reminded of what commands are supported.
+void UART_Welcome_Message();
+
 #endif //UART_HELPER_FCNS_H
 
 /* [] END OF FILE */

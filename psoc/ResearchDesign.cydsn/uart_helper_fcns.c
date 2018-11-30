@@ -139,6 +139,22 @@ void UART_Command_Parser() {
             sprintf(transmit_buffer, "Hard Stop. TO-DO: IMPLEMENT THIS.\n");
             break;
             
+        case 'w':
+            // echo back the welcome message.
+            UART_Welcome_Message();
+            // and push an empty string to the transmit buffer.
+            sprintf(transmit_buffer, "");
+            break;
+            
+        case 'c':
+            // Clear the UART's buffers. This shouldn't ever need to be used,
+            // but is provided in case "something bad happens"
+            UART_ClearRxBuffer();
+            UART_ClearTxBuffer();
+            // still need to specify some message to send back to the terminal.
+            sprintf(transmit_buffer, "Cleared RX and TX buffers for the UART on the PSoC.\n");
+            break;
+            
         default:
             // In any other case, report an error.
             sprintf(transmit_buffer, "Error! Command not recognized!\n");
@@ -150,6 +166,24 @@ void UART_Command_Parser() {
     // and reset the counter into the receive buffer so that 
     // the ISR overwrites the last command.
     num_chars_received = 0;
+}
+
+// The welcome message.
+// UPDATE THIS when new functionality is added.
+void UART_Welcome_Message(){
+    
+    UART_PutString("\n2D Spine Controller Test.\n");
+    UART_PutString("Copyright 2018 Berkeley Emergent Space Tensegrities Lab.\n");
+    UART_PutString("Usage: send strings of the form (char) (optional_args). Currently supported:\n");
+    UART_PutString("(NOTE: THESE MUST BE FOLLOWED EXACTLY, with exact spacing.)\n\n");
+    UART_PutString("e = enable PWM\n");
+    UART_PutString("x = disable PWM\n");
+    UART_PutString("q = query currently-stored control input\n");
+    UART_PutString("s = hard stop. The Big Red Button. (hopefully.)\n");
+    UART_PutString("w = echo back this welcome message \n");
+    UART_PutString("c = clear all UART tx/rx buffers on the PSoC \n");
+    UART_PutString("u float float float float = assign control input\n\n");
+    UART_PutString("Remember to set your terminal's newline to LF or automatic detection. (TeraTerm: Setup -> Terminal -> New-line).\n\n");
 }
 
 /* [] END OF FILE */
