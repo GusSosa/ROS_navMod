@@ -33,8 +33,8 @@ def tx_to_serial(device_name):
 	# Next, do the serial setup:
 	# Hard-coded: our PSoC uses the following baud rate:
 	psoc_baud = 115200
-	# create the serial port object
-	serial_port = serial.Serial(device_name, psoc_baud, timeout=serial_timeout)
+	# create the serial port object, non-exclusive (so others can use it too)
+	serial_port = serial.Serial(device_name, psoc_baud, timeout=serial_timeout, exclusive=False)
 	# flush out any old data
 	serial_port.reset_input_buffer()
 	serial_port.reset_output_buffer()
@@ -44,10 +44,20 @@ def tx_to_serial(device_name):
 	# Instead of an infinite loop, use ROS's shutdown procedure.
 	while not rospy.is_shutdown():
 		# request something to send
-		to_psoc = raw_input("Message to send over serial terminal: ")
-		serial_port.write(to_psoc)
-		# and publish to the topic, too.
-		pub.publish(to_psoc)
+		try:
+			to_psoc = raw_input("Message to send over serial terminal: ")
+			# Concatenate a newline so that the psoc calls its command parser
+			to_psoc += '\n'
+			serial_port.write(to_psoc)
+			# and publish to the topic, too.
+			pub.publish(to_psoc)
+		except KeyboardInterrupt:
+			# Check: if we get the shutdown signal...
+			# TO-DO: this doesn't seem to be working. Luckily enough, the PSoC
+			# doesn't do Ctrl-C as a command, so it's ugly but safe to just not 
+			# deal with keyboard interrupts and let rospy handle it.
+			rospy.signal_shutdown("Shutting down, Ctrl-C received.")
+
 
 
 # the main function: just call the helper, while parsing the serial port path.

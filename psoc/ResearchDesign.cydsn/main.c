@@ -1,22 +1,35 @@
 /* ========================================
  *
- * Copyright YOUR COMPANY, THE YEAR
- * All Rights Reserved
- * UNPUBLISHED, LICENSED SOFTWARE.
+ * 2D Spine Controller Test Embedded Software
  *
- * CONFIDENTIAL AND PROPRIETARY INFORMATION
- * WHICH IS THE PROPERTY OF your company.
+ * Copyright Berkeley Emergent Space Tensegrities Lab, 2018
+ * (insert license later.)
  *
  * ========================================
 */
-#include "project.h"
-#include <stdio.h>
+
 
 int8 controller_status = 0;
 int8 motor_2 = 0;
 
 int count_1 = 0;
 int count_2 = 0;
+
+// Include both the UART helper functions and the header
+// that has the global variables we need.
+// note that both of these should have include guards in them already
+// so it's safe to include them directly here.
+#include <project.h>
+#include "stdio.h"
+#include "uart_helper_fcns.h"
+#include "data_storage.h"
+
+
+// Move any of the following variables (needed across functions)
+// to the data_storage files.
+// Any variables which are only needed within one file should not be
+// made global, though. See uart_helper_fcns.c for an example, and compare
+// the transmit/received buffers with the control input array.
 
 uint16 pwm_1 = 0;
 uint16 pwm_2 = 0;
@@ -28,6 +41,7 @@ double proportional_2 = 0;
 
 int CUR_ERROR_1 = 0;
 int CUR_ERROR_2 = 0;
+
 
 uint16 TICKS_1 = 0;
 uint16 TICKS_2 = 0;
@@ -83,24 +97,31 @@ CY_ISR(encoder_interrupt_handler_2) {
 }
 
 
-CY_ISR(uart_handler) {
-    controller_status = 1;
-    first_loop = 1;
-    TICKS_2 = 500;
-    count_2 = 0;
-}
+// CY_ISR(uart_handler) {
+//     controller_status = 1;
+//     first_loop = 1;
+//     TICKS_2 = 500;
+//     count_2 = 0;
+// }
+// Move all the following interrupt handlers to their own .c files. 
+// Use uart_helper_fcns as a template.c and .h as a template.
 
-int main(void)
-    {
+
+
+int main(void) {
     
+    // Enable interrupts for the chip
     CyGlobalIntEnable;
+
     isr_Encoder_1_StartEx(encoder_interrupt_handler_1);
     isr_Encoder_2_StartEx(encoder_interrupt_handler_2);
     
+    // Start the interrupt handlers / service routines for each interrupt:
+    // UART, main control loop, encoder counting.
+    // These are found in the corresponding helper files (declarations in .h, implementations in .c)
+    isr_UART_StartEx(Interrupt_Handler_UART_Receive);
     isr_Timer_StartEx(timer_handler);
-    
-    isr_UART_StartEx(uart_handler);
-    
+        
     PWM_1_Start();
     PWM_1_WriteCompare(400);
     PWM_2_Start();
@@ -109,7 +130,8 @@ int main(void)
     Timer_Start();
     UART_Start();
     
-    UART_PutString("COM Port Open");
+    // Print a welcome message. Comes from uart_helper_fcns.
+    UART_Welcome_Message();
     
     Pin_High_1_Write(1);
     Pin_Low_1_Write(0);
