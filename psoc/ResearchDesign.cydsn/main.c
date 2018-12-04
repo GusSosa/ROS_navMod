@@ -9,11 +9,6 @@
 */
 
 
-int8 controller_status = 0;
-int8 motor_2 = 0;
-
-int count_1 = 0;
-int count_2 = 0;
 
 // Include both the UART helper functions and the header
 // that has the global variables we need.
@@ -24,6 +19,11 @@ int count_2 = 0;
 #include "uart_helper_fcns.h"
 #include "data_storage.h"
 
+int8 controller_status = 0;
+int8 motor_2 = 0;
+
+int count_1 = 0;
+int count_2 = 0;
 
 // Move any of the following variables (needed across functions)
 // to the data_storage files.
