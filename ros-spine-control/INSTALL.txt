@@ -9,6 +9,8 @@ Requirements:
 		Note that ros-melodic-desktop's package will *not* work, even though it's python 2.7, it does not include opencv-contrib.
 		Suggestion is to use pip, specifying python 2.7 (to-do: write how to do this). Package is opencv-contrib-python.
 		(Jacob: fix this ^ if not exactly correct)
+	User access to the serial port. Under Ubuntu, usually /dev/ttyACM0. To do so, your user needs to be part of the 'dialout' group. Example: run...
+		>> sudo adduser $USER dialout
 
 Using:
 	Standard ros procedure. Source devel/setup.bash, then see the individual files for suggestions on how to run the scripts.
