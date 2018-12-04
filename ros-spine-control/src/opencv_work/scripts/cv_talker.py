@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-# Simple talker demo that published std_msgs/Strings messages
-# to the 'chatter' topic
+# Simple talker demo that publishes numpy_msg(Floats) messages
+# to the 'cv_data' topic
 
 import rospy
 from rospy.numpy_msg import numpy_msg
@@ -22,16 +22,17 @@ def talker():
 
     while not rospy.is_shutdown():
         # run initalization
-        (trackers, args, initBB, initScale, x_pix_com, y_pix_com, vs, fps, frame, key) = tracker_init()
+        (trackers, args, initBB, pix_com, vs, fps, key) = tracker_init()
 
         # while still tracking
         while not key == ord("q"):
 
             # run tracker
-            (pix_com_data, key) = tracker_main(trackers, args, initBB, initScale, x_pix_com, y_pix_com, vs, fps)
+            (pix_com_data, key) = tracker_main(trackers, args, initBB, pix_com, vs, fps)
+            pix_com_data = pix_com_data.flatten()
 
             # publish data
-            # rospy.loginfo(x_pix_com_data)
+            # rospy.loginfo(pix_com_data)
             pub.publish(pix_com_data)
             rate.sleep()
 

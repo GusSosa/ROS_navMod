@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
-# Simple talker demo that listens to std_msgs/Strings published
-# to the 'chatter' topic
+# Simple talker demo that listens to numpy_msg(Floats) published
+# to the 'cv_data' topic
 
 import roslib
 import rospy
@@ -12,7 +12,8 @@ roslib.load_manifest('opencv_work')
 
 
 def callback(data):
-    print 'COM: %s' % str(data.data)
+    pix_data = data.data.reshape((2, 2))
+    print pix_data
     # rospy.loginfo('X COM: %f', data.data)
     # rospy.loginfo(data)
 
