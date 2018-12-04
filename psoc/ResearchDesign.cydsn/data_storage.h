@@ -21,6 +21,9 @@
 #define NUM_MOTORS 4
     
 extern float current_control[NUM_MOTORS];
+extern int controller_status;
+extern int first_loop_1;
+extern int first_loop_2;
 
 #endif // DATA_STORAGE_H
 

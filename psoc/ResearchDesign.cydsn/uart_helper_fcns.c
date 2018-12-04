@@ -121,11 +121,17 @@ void UART_Command_Parser() {
                 // Return the resulting data that was stored.
                 sprintf(transmit_buffer, "Stored an input of %f, %f, %f, %f\r\n", current_control[0],
                     current_control[1], current_control[2], current_control[3]);
+                controller_status = 1;
+                first_loop_1 = 1;
+                first_loop_2 = 1;
             }
             else {
                 // did not receive exactly 4 control inputs.
                 sprintf(transmit_buffer, "Error!! You typed %s, which gave %i control inputs when 4 were expected.\r\n", receive_buffer, num_filled);
             }
+            
+
+       
             break;
             
         case 'q':
