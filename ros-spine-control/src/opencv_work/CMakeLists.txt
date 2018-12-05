@@ -14,9 +14,9 @@ find_package(catkin REQUIRED COMPONENTS
 )
 
 ## THIS WAS ADDED BY ME!
-find_package(OpenCV)
-   include_directories(${OpenCV_INCLUDE_DIRS})
-   target_link_libraries(~/opencv_ws/src/opencv_work/scripts/cv_talker.py ${OpenCV_LIBRARIES})
+#find_package(OpenCV)
+#  include_directories(${OpenCV_INCLUDE_DIRS})
+#   target_link_libraries(~/opencv_ws/src/opencv_work/scripts/cv_talker.py ${OpenCV_LIBRARIES})
 ##
 
 ## System dependencies are found with CMake's conventions

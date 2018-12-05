@@ -7,8 +7,9 @@ import rospy
 from rospy.numpy_msg import numpy_msg
 from rospy_tutorials.msg import Floats
 import roslib
-from opencv_object_tracker import tracker_init, tracker_main
+from opencv_object_tracker import tracker_init, tracker_main, tracker_angle
 import cv2
+import numpy as np
 
 roslib.load_manifest('opencv_work')
 
@@ -29,11 +30,15 @@ def talker():
 
             # run tracker
             (pix_com_data, key) = tracker_main(trackers, args, initBB, pix_com, vs, fps)
+            theta = tracker_angle(pix_com_data)
             pix_com_data = pix_com_data.flatten()
 
+            vert_data = np.append(pix_com_data, theta)
+            print theta
+
             # publish data
-            # rospy.loginfo(pix_com_data)
-            pub.publish(pix_com_data)
+            # rospy.loginfo(vert_data)
+            pub.publish(vert_data)
             rate.sleep()
 
         # if we are using a webcam, release the pointer

@@ -11,6 +11,8 @@ import argparse
 import time
 import cv2
 import sys
+import imutils
+import math
 
 
 def tracker_init():
@@ -70,6 +72,7 @@ def tracker_init():
 
         # resize the frame (so we can process it faster) and grab the
         # frame dimensions
+        frame = imutils.resize(frame, width=1000)
         (H, W) = frame.shape[:2]
 
         # initialize the set of information we'll be displaying on
@@ -149,7 +152,7 @@ def tracker_main(trackers, args, initBB, pix_com, vs, fps):
 
     # resize the frame (so we can process it faster) and grab the
     # frame dimensions
-    # frame = imutils.resize(frame, width=500)
+    frame = imutils.resize(frame, width=1000)
     (H, W) = frame.shape[:2]
 
     # grab the new bounding box coordinates of the object
@@ -190,9 +193,17 @@ def tracker_main(trackers, args, initBB, pix_com, vs, fps):
     return (pix_com, key)
 
 
+def tracker_angle(com):
+    [x, y] = com[0, :] - com[1, :]
+    theta = math.asin(y / x)
+
+    return theta
+
+
 if __name__ == "__main__":
     tracker_init()
     tracker_main()
+    tracker_angle()
 
 # 1. integrate ROS node - publish to node
 # 2. camera rig
