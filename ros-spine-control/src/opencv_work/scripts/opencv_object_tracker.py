@@ -54,7 +54,7 @@ def tracker_init():
     # to use PC webcam, change src=0
     # to use connected USB camera, change src=1 or src=2...
     print("[INFO] starting video stream...")
-    vs = VideoStream(src=0).start()
+    vs = VideoStream(src=1).start()
     time.sleep(0.5)
 
     # initialize the FPS throughput estimator
@@ -122,6 +122,15 @@ def tracker_init():
     H = calculate_homography.calc_H(uv, global_pts)
     print("Calculated homography is:")
     print(H)
+
+    # close the current window before proceeding.
+    #cv2.destroyWindow("Frame")
+
+    # Testing: 
+    # 1) show a grid of points that should correspond to the grid behind the spine
+    #calculate_homography.check_homography(H, vs, args, 16, 16, 2)
+    # 2) calculate the distance between two points in the local frame.
+    calculate_homography.test_H(H, vs, args)
 
     # Back to the rest of the script.
     print('Press <S> in the "Frame" window to select ROI of first object')
