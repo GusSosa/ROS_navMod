@@ -24,6 +24,13 @@ extern float current_control[NUM_MOTORS];
 extern int controller_status;
 extern int first_loop_1;
 extern int first_loop_2;
+extern int first_loop_3;
+extern int first_loop_4;
+extern int motor_1;
+extern int motor_2;
+extern int motor_3;
+extern int motor_4;
+extern int print;
 
 #endif // DATA_STORAGE_H
 

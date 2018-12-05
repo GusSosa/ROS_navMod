@@ -124,6 +124,13 @@ void UART_Command_Parser() {
                 controller_status = 1;
                 first_loop_1 = 1;
                 first_loop_2 = 1;
+                first_loop_3 = 1;
+                first_loop_4 = 1;
+                motor_1 = 1;
+                motor_2 = 1;
+                motor_3 = 1;
+                motor_4 = 1;
+                print = 1;
             }
             else {
                 // did not receive exactly 4 control inputs.

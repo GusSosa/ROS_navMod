@@ -7,9 +7,9 @@
  *
  * ========================================
 */
-#define PWM_MAX 300
-#define PWM_INIT 300
-#define PWM_MIN 80
+#define PWM_MAX 1000
+#define PWM_INIT 500
+#define PWM_MIN 200
 
 // Include both the UART helper functions and the header
 // that has the global variables we need.
@@ -21,13 +21,13 @@
 #include "uart_helper_fcns.h"
 #include "data_storage.h"
 
-int8 motor_2 = 0;
 
 int16 count_1 = 0;
 int16 count_2 = 0;
+int16 count_3 = 0;
+int16 count_4 = 0;
 
 int controller_status = 0;
-int first_loop = 0;
 
 
 // Move any of the following variables (needed across functions)
@@ -40,14 +40,27 @@ float Kp = 0.2;
 
 float proportional_1 = 0;
 float proportional_2 = 0;
+float proportional_3 = 0;
+float proportional_4 = 0;
 
 float CUR_ERROR_1 = 0;
 float CUR_ERROR_2 = 0;
-
-_Bool pin2B = 0;
+float CUR_ERROR_3 = 0;
+float CUR_ERROR_4 = 0;
 
 int first_loop_1 = 0;
 int first_loop_2 = 0;
+int first_loop_3 = 0;
+int first_loop_4 = 0;
+
+
+int motor_1 = 0;
+int motor_2 = 0;
+int motor_3 = 0;
+int motor_4 = 0;
+
+int print = 1;
+
 CY_ISR(timer_handler) { 
     if (controller_status == 1) {
         
@@ -66,17 +79,20 @@ CY_ISR(timer_handler) {
         }
         // Calculate proportional control 1
         proportional_1 = fabs(CUR_ERROR_1) * Kp;
-        // Set PWM
+        // Set PWM 1
         if (first_loop_1 == 1) {
             if (fabs(CUR_ERROR_1) > 15) {
                 PWM_1_WriteCompare(PWM_INIT);
                 first_loop_1 = 0;
             }
+            else if (fabs(CUR_ERROR_1) <= 15) {
+                motor_1 = 0;
+            }            
         }
         else if (fabs(CUR_ERROR_1) < 25){
             PWM_1_WriteCompare(0); 
-            motor_2 = 0; 
-        }
+            motor_1 = 0;
+            }
         else if (proportional_1 > 1000) { 
             PWM_1_WriteCompare(PWM_MAX); 
         }
@@ -110,10 +126,13 @@ CY_ISR(timer_handler) {
                 PWM_2_WriteCompare(PWM_INIT);
                 first_loop_2 = 0;
             }
+            else if (fabs(CUR_ERROR_2) <= 15) {
+                motor_2 = 0;
+            }            
         }
         else if (fabs(CUR_ERROR_2) < 25){
-            PWM_2_WriteCompare(0); 
-            motor_2 = 0; 
+            PWM_2_WriteCompare(0);    
+            motor_2 = 0;
         }
         else if (proportional_2 > 1000) { 
             PWM_2_WriteCompare(PWM_MAX); 
@@ -125,13 +144,120 @@ CY_ISR(timer_handler) {
            else {
                PWM_2_WriteCompare(PWM_MIN); } 
         }
+         // MOTOR 3 
+        float TICKS_3 = current_control[2];
+        CUR_ERROR_3 = TICKS_3 - count_3;
+        // Determine direction of rotation
+        if (CUR_ERROR_3 > 0) {
+            Pin_High_3_Write(1);
+            Pin_Low_3_Write(0);
+        }
+        else {
+            Pin_High_3_Write(0);
+            Pin_Low_3_Write(1);
+        }
+        // Calculate proportional control 3
+        proportional_3 = fabs(CUR_ERROR_3) * Kp;
+
+        // Set PWM 3
+        if (first_loop_3 == 1) {
+            if (fabs(CUR_ERROR_3) > 15) {
+                PWM_3_WriteCompare(PWM_INIT);
+                first_loop_3 = 0;
+            }
+            else if (fabs(CUR_ERROR_3) <= 15) {
+                motor_3 = 0;
+            }
+        }
+        else if (fabs(CUR_ERROR_3) < 25){
+            PWM_3_WriteCompare(0);   
+            motor_3 = 0;
+        }
+        else if (proportional_3 > 1000) { 
+            PWM_3_WriteCompare(PWM_MAX); 
+        }
+        else if (proportional_3 < 1000) {
+            if (proportional_3 > PWM_MIN) {
+                PWM_3_WriteCompare(proportional_3); 
+            }
+           else {
+               PWM_3_WriteCompare(PWM_MIN); } 
+        }
         
+        
+        // MOTOR 4 
+        float TICKS_4 = current_control[3];
+        CUR_ERROR_4 = TICKS_4 - count_4;
+        // Determine direction of rotation
+        if (CUR_ERROR_4 > 0) {
+            Pin_High_4_Write(1);
+            Pin_Low_4_Write(0);
+        }
+        else {
+            Pin_High_4_Write(0);
+            Pin_Low_4_Write(1);
+        }
+        // Calculate proportional control 4
+        proportional_4 = fabs(CUR_ERROR_4) * Kp;
+
+        // Set PWM 4
+        if (first_loop_4 == 1) {
+            if (fabs(CUR_ERROR_4) > 15) {
+                PWM_4_WriteCompare(PWM_INIT);
+                first_loop_4 = 0;
+            }
+            else if (fabs(CUR_ERROR_4) <= 15) {
+                motor_4 = 0;
+            }
+        }
+        else if (fabs(CUR_ERROR_4) < 50){
+            PWM_4_WriteCompare(0);    
+            motor_4 = 0;
+        }
+        else if (proportional_4 > 1000) { 
+            PWM_4_WriteCompare(PWM_MAX); 
+        }
+        else if (proportional_4 < 1000) {
+            if (proportional_4 > PWM_MIN) {
+                PWM_4_WriteCompare(proportional_4); 
+            }
+           else {
+               PWM_4_WriteCompare(PWM_MIN); } 
+        }
+        
+//    if ((motor_1==0) && (motor_2==0) && (motor_3==0) && (motor_4==0)) {
+//        if (print == 1) {
+//            print = 0;
+//            char buf1[6];
+//            UART_PutString("  E1: ");
+//            sprintf(buf1,"%d",count_1);
+//            UART_PutString(buf1);
+//
+//            char buf2[6];
+//            UART_PutString("  E2: ");
+//            sprintf(buf2,"%d",count_2);
+//            UART_PutString(buf2);
+//
+//            char buf3[6];
+//            UART_PutString("  E3: ");
+//            sprintf(buf3,"%d",count_3);
+//            UART_PutString(buf3);
+//
+//            char buf4[6];
+//            UART_PutString("  E4: ");
+//            sprintf(buf4,"%d",count_4);
+//            UART_PutString(buf4);
+//           
+//        }
+//    }        
     }
+
+    
     
     Timer_ReadStatusRegister();
 }
-CY_ISR(encoder_interrupt_handler_1A) {
-    Pin_Encoder_1A_ClearInterrupt();
+CY_ISR(encoder_interrupt_handler_1) {
+    Pin_Encoder_1_ClearInterrupt();
     
     if (Pin_High_1_Read() == 1 && Pin_Low_1_Read() == 0) {
         count_1++;
@@ -140,14 +266,14 @@ CY_ISR(encoder_interrupt_handler_1A) {
         count_1--;
     }
     
-    char buf[6];
-    sprintf(buf,"%d",count_1);
-    UART_PutString(buf);
-    UART_PutString("E1: ");
+//    char buf[6];
+//    sprintf(buf,"%d",count_1);
+//    UART_PutString(buf);
+//    UART_PutString("E1: ");
 }
 
-CY_ISR(encoder_interrupt_handler_2A) {
-    Pin_Encoder_2A_ClearInterrupt();
+CY_ISR(encoder_interrupt_handler_2) {
+    Pin_Encoder_2_ClearInterrupt();
     
     if (Pin_High_2_Read() == 1 && Pin_Low_2_Read() == 0) {
         count_2++;
@@ -156,19 +282,50 @@ CY_ISR(encoder_interrupt_handler_2A) {
         count_2--;
     }
     
-    char buf[6];
-    sprintf(buf,"%d",count_2);
-    UART_PutString(buf);
-    UART_PutString("E2: ");
+//    char buf[6];
+//    sprintf(buf,"%d",count_2);
+//    UART_PutString(buf);
+//    UART_PutString("E2: ");
+}
+CY_ISR(encoder_interrupt_handler_3) {
+    Pin_Encoder_3_ClearInterrupt();
+    
+    if (Pin_High_3_Read() == 1 && Pin_Low_3_Read() == 0) {
+        count_3++;
+    }
+    else {
+        count_3--;
+    }
+    
+//    char buf[6];
+//    sprintf(buf,"%d",count_3);
+//    UART_PutString(buf);
+//    UART_PutString("E3: ");
+}
+CY_ISR(encoder_interrupt_handler_4) {
+    Pin_Encoder_4_ClearInterrupt();
+    
+    if (Pin_High_4_Read() == 1 && Pin_Low_4_Read() == 0) {
+        count_4++;
+    }
+    else {
+        count_4--;
+    }
+    
+//    char buf[6];
+//    sprintf(buf,"%d",count_4);
+//    UART_PutString(buf);
+//    UART_PutString("E4: ");
 }
 int main(void) {
     
     // Enable interrupts for the chip
     CyGlobalIntEnable;
 
-    isr_Encoder_1A_StartEx(encoder_interrupt_handler_1A);
-    
-    isr_Encoder_2A_StartEx(encoder_interrupt_handler_2A);
+    isr_Encoder_1_StartEx(encoder_interrupt_handler_1);
+    isr_Encoder_2_StartEx(encoder_interrupt_handler_2);
+    isr_Encoder_3_StartEx(encoder_interrupt_handler_3);
+    isr_Encoder_4_StartEx(encoder_interrupt_handler_4);
     
     // Start the interrupt handlers / service routines for each interrupt:
     // UART, main control loop, encoder counting.
@@ -180,6 +337,10 @@ int main(void) {
     PWM_1_WriteCompare(0);
     PWM_2_Start();
     PWM_2_WriteCompare(0);
+    PWM_3_Start();
+    PWM_3_WriteCompare(0);    
+    PWM_4_Start();
+    PWM_4_WriteCompare(0);
     
     Timer_Start();
     UART_Start();
