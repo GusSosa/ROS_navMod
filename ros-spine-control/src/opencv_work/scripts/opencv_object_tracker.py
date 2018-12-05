@@ -42,7 +42,6 @@ def tracker_init():
     # initialize the bounding box coordinates of the object we are going
     # to track, and scale object
     trackers = cv2.MultiTracker_create()
-    initBB = np.array([], [])
     pix_com = np.zeros((2, 2), dtype=np.float32)
     print pix_com
 
@@ -119,9 +118,7 @@ def tracker_init():
             tracker = OPENCV_OBJECT_TRACKERS[args["tracker"]]()
             trackers.add(tracker, frame, box)
 
-            # start OpenCV object tracker using the supplied bounding box
-            # coordinates, then start the FPS throughput estimator as well
-            # tracker.init(frame, initBB[0])
+            # start the FPS estimator as well
             fps = FPS().start()
 
             break
@@ -140,10 +137,10 @@ def tracker_init():
             print('[START OF TRACKING]' + '\n' + 'Press <Q> in the "Frame" window to stop tracking')
             break
 
-    return (trackers, args, initBB, pix_com, vs, fps, key)
+    return (trackers, args, pix_com, vs, fps, key)
 
 
-def tracker_main(trackers, args, initBB, pix_com, vs, fps):
+def tracker_main(trackers, args, pix_com, vs, fps):
 
     # grab the current frame, then handle if we are using a
     # VideoStream or VideoCapture object

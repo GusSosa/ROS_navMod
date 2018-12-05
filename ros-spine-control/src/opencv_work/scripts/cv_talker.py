@@ -23,13 +23,13 @@ def talker():
 
     while not rospy.is_shutdown():
         # run initalization
-        (trackers, args, initBB, pix_com, vs, fps, key) = tracker_init()
+        (trackers, args, pix_com, vs, fps, key) = tracker_init()
 
         # while still tracking
         while not key == ord("q"):
 
             # run tracker
-            (pix_com_data, key) = tracker_main(trackers, args, initBB, pix_com, vs, fps)
+            (pix_com_data, key) = tracker_main(trackers, args, pix_com, vs, fps)
             theta = tracker_angle(pix_com_data)
             pix_com_data = pix_com_data.flatten()
 
