@@ -7,17 +7,14 @@ project(opencv_work)
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
+## On 2018-12-4, Drew added the packages from the lab4_cam example: sensor_msgs and message_generation
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  sensor_msgs
+  message_generation
 )
-
-## THIS WAS ADDED BY ME!
-#find_package(OpenCV)
-#  include_directories(${OpenCV_INCLUDE_DIRS})
-#   target_link_libraries(~/opencv_ws/src/opencv_work/scripts/cv_talker.py ${OpenCV_LIBRARIES})
-##
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -54,17 +51,17 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## Generate messages in the 'msg' folder
 # add_message_files(
-#   FILES
+#	FILES
 #   Message1.msg
 #   Message2.msg
-# )
+#)
 
 ## Generate services in the 'srv' folder
-# add_service_files(
-#   FILES
-#   Service1.srv
-#   Service2.srv
-# )
+## On 2018-12-4, Drew added the custom service for images as per the lab4_cam example
+add_service_files(
+	FILES
+	ImageSrv.srv
+)
 
 ## Generate actions in the 'action' folder
 # add_action_files(
@@ -74,10 +71,12 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+## On 2018-12-4, Drew added the generated message from the lab4_cam example.
+## (original suggessted std_msgs be here too - look into this later.)
+generate_messages(
+   DEPENDENCIES
+   sensor_msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
