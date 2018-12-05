@@ -37,16 +37,18 @@ def talker():
 
                 # run tracker
                 (pix_com_data, key) = tracker_main(trackers, args, pix_com, vs, fps)
-                pix_com_hom = np.append(pix_com_data, [[1, 1]], axis=0)
-                true_com = np.linalg.inv(H) * np.transpose(pix_com_hom)
-                theta = tracker_angle(pix_com_data)
-                true_com = true_com.flatten()
 
+                # calculate true COM points using homography matrix
+                pix_com_hom = np.append(pix_com_data, [[1, 1]], axis=0)
+                true_com = (np.dot(np.linalg.inv(H), pix_com_hom))[0:2, :].flatten()
+                # calculate angle of rotation of vertebrae
+                theta = tracker_angle(pix_com_data)
+                # append rotation data with COM position data
                 vert_data = np.append(true_com, theta)
+
                 print(vert_data)
 
                 # publish data
-                # rospy.loginfo(vert_data)
                 pub.publish(vert_data)
                 rate.sleep()
 
