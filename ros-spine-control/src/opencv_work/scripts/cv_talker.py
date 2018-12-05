@@ -13,6 +13,7 @@ import roslib
 from opencv_object_tracker import tracker_init, tracker_main, tracker_angle
 import cv2
 import numpy as np
+from numpy.linalg import inv
 
 roslib.load_manifest('opencv_work')
 
@@ -25,20 +26,23 @@ def talker():
     rate = rospy.Rate(100)  # 10hz
 
     while not rospy.is_shutdown():
+
         # wrap everything around a keyboard interrupt catcher
         try:
             # run initalization
-            (trackers, args, initBB, pix_com, vs, fps, key) = tracker_init()
+            (trackers, args, pix_com, vs, H, fps, key) = tracker_init()
 
             # while still tracking
             while not key == ord("q"):
 
                 # run tracker
-                (pix_com_data, key) = tracker_main(trackers, args, initBB, pix_com, vs, fps)
+                (pix_com_data, key) = tracker_main(trackers, args, pix_com, vs, fps)
+                pix_com_hom = np.append(pix_com_data, [[1, 1]], axis=0)
+                true_com = np.linalg.inv(H) * np.transpose(pix_com_hom)
                 theta = tracker_angle(pix_com_data)
-                pix_com_data = pix_com_data.flatten()
+                true_com = true_com.flatten()
 
-                vert_data = np.append(pix_com_data, theta)
+                vert_data = np.append(true_com, theta)
                 print(vert_data)
 
                 # publish data

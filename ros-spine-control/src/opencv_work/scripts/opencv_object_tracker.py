@@ -19,6 +19,7 @@ import calculate_homography
 # Define the total number of expected clicks for the homography.
 TOT_H_CLICKS = 4
 
+
 def tracker_init():
 
     # construct the argument parser and parse the arguments
@@ -47,7 +48,6 @@ def tracker_init():
     # to track, and scale object
     trackers = cv2.MultiTracker_create()
     pix_com = np.zeros((2, 2), dtype=np.float32)
-    print pix_com
 
     # grab the reference to the web cam
     # to use PC webcam, change src=0
@@ -64,11 +64,12 @@ def tracker_init():
     # We'll store the clicked points for the homography in this array:
     h_pts = []
     # First, create a callback for mouse clicks. (Adapted from EE206A Lab 4)
-    def on_mouse_click(event,x,y,flag,param):
+
+    def on_mouse_click(event, x, y, flag, param):
         # we'll only capture four clicks.
         if len(h_pts) < TOT_H_CLICKS:
             if(event == cv2.EVENT_LBUTTONUP):
-                point = (x,y)
+                point = (x, y)
                 print "Point Captured: " + str(point)
                 h_pts.append(point)
 
@@ -108,13 +109,13 @@ def tracker_init():
     global_pts = np.ndarray((4, 2))
     # On 2018-12-5, the blue tape on the test setup was 16 squares of 2cm each,
     # so that's 32 cm along each edge.
-    edge = 32;
+    edge = 32
     # the coordinates are then,
     # for points 0 to 4 in the world frame,
-    global_pts[0,:] = [0, 0]
-    global_pts[1,:] = [0, edge]
-    global_pts[2,:] = [edge, edge]
-    global_pts[3,:] = [edge, 0]
+    global_pts[0, :] = [0, 0]
+    global_pts[1, :] = [0, edge]
+    global_pts[2, :] = [edge, edge]
+    global_pts[3, :] = [edge, 0]
 
     # and can now call the function itself.
     # as of 2018-12-5, uv is 2x4 but global_pts is 4x2. STANDARDIZE THIS.
@@ -123,9 +124,9 @@ def tracker_init():
     print(H)
 
     # close the current window before proceeding.
-    #cv2.destroyWindow("Frame")
+    # cv2.destroyWindow("Frame")
 
-    # Testing: 
+    # Testing:
     # 1) show a grid of points that should correspond to the grid behind the spine
     #calculate_homography.check_homography(H, vs, args, 16, 16, 2)
     # 2) calculate the distance between two points in the local frame.
@@ -149,7 +150,7 @@ def tracker_init():
         # resize the frame (so we can process it faster) and grab the
         # frame dimensions
         frame = imutils.resize(frame, width=1000)
-        (H, W) = frame.shape[:2]
+        (Height, W) = frame.shape[:2]
 
         # initialize the set of information we'll be displaying on
         # the frame
@@ -159,7 +160,7 @@ def tracker_init():
         # loop over the info tuples and draw them on our frame
         for (i, (k, v)) in enumerate(info):
             text = "{}: {}".format(k, v)
-            cv2.putText(frame, text, (10, H - ((i * 20) + 20)),
+            cv2.putText(frame, text, (10, Height - ((i * 20) + 20)),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
         # show the output frame
@@ -214,7 +215,7 @@ def tracker_init():
             print('[START OF TRACKING]' + '\n' + 'Press <Q> in the "Frame" window to stop tracking')
             break
 
-    return (trackers, args, pix_com, vs, fps, key)
+    return (trackers, args, pix_com, vs, H, fps, key)
 
 
 def tracker_main(trackers, args, pix_com, vs, fps):
@@ -278,8 +279,3 @@ if __name__ == "__main__":
     tracker_init()
     tracker_main()
     tracker_angle()
-
-# 1. integrate ROS node - publish to node
-# 2. camera rig
-# 3. smoothing filter for data
-# 4. Homography transform matrix
