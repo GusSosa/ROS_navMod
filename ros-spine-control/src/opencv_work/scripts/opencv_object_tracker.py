@@ -195,9 +195,9 @@ def tracker_main(trackers, args, initBB, pix_com, vs, fps):
 
 def tracker_angle(com):
     [x, y] = com[0, :] - com[1, :]
-    theta = math.asin(y / x)
+    theta_deg = np.array(math.degrees(math.asin(y / x)), dtype=np.float32)
 
-    return theta
+    return theta_deg
 
 
 if __name__ == "__main__":
