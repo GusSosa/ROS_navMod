@@ -13,7 +13,11 @@ import cv2
 import sys
 import imutils
 import math
+import rospy
+import calculate_homography
 
+# Define the total number of expected clicks for the homography.
+TOT_H_CLICKS = 4
 
 def tracker_init():
 
@@ -56,10 +60,74 @@ def tracker_init():
     # initialize the FPS throughput estimator
     fps = FPS().start()
 
+    # Get the homography for this run of the tracker.
+    print("[INFO] Now calculating the homography.")
+    # We'll store the clicked points for the homography in this array:
+    h_pts = []
+    # First, create a callback for mouse clicks. (Adapted from EE206A Lab 4)
+    def on_mouse_click(event,x,y,flag,param):
+        # we'll only capture four clicks.
+        if len(h_pts) < TOT_H_CLICKS:
+            if(event == cv2.EVENT_LBUTTONUP):
+                point = (x,y)
+                print "Point Captured: " + str(point)
+                h_pts.append(point)
+
+    # Get the positions of the clicks.
+    # We want to wait until the user is ready to start.
+    # A nifty way to do so is to have them type something into the terminal, then discard what was typed.
+    raw_input("Please move out of the frame, then press enter to capture the frame that will be used for the homography.")
+    print("Click four times to get the points for the homography.")
+    # Next, get the four clicks. Read this frame:
+    # grab the current frame, then handle if we are using a
+    # VideoStream or VideoCapture object
+    frame = vs.read()
+    frame = frame[1] if args.get("video", False) else frame
+    # show the newly-captured frame
+    cv2.imshow("Frame", frame)
+
+    # Tell OpenCV that it should call 'on_mouse_click' when the user
+    # clicks the window. This will add clicked points to our list
+    cv2.setMouseCallback("Frame", on_mouse_click, param=1)
+    # Finally, loop until we've got enough clicks. Just a blocking wait.
+    while len(h_pts) < TOT_H_CLICKS:
+        if rospy.is_shutdown():
+            raise KeyboardInterrupt
+        # just block
+        cv2.waitKey(10)
+    # We should now have four elements in the h_pts array now.
+    print("Captured points for the homography:")
+    print(h_pts)
+    # Convert the Python list of points to a NumPy array of the form
+    #   | u1 u2 u3 u4 |
+    #   | v1 v2 v3 v4 |
+    uv = np.array(h_pts).T
+
+    # Specify the points in the global frame, i.e. the frame of the vertebra.
+    # Assume the points go (bottom left, top left, top right, bottom right)
+    # and that the origin is at the bottom left.
+    global_pts = np.ndarray((4, 2))
+    # On 2018-12-5, the blue tape on the test setup was 16 squares of 2cm each,
+    # so that's 32 cm along each edge.
+    edge = 32;
+    # the coordinates are then,
+    # for points 0 to 4 in the world frame,
+    global_pts[0,:] = [0, 0]
+    global_pts[1,:] = [0, edge]
+    global_pts[2,:] = [edge, edge]
+    global_pts[3,:] = [edge, 0]
+
+    # and can now call the function itself.
+    # as of 2018-12-5, uv is 2x4 but global_pts is 4x2. STANDARDIZE THIS.
+    H = calculate_homography.calc_H(uv, global_pts)
+    print("Calculated homography is:")
+    print(H)
+
+    # Back to the rest of the script.
     print('Press <S> in the "Frame" window to select ROI of first object')
 
     # loop over frames from the video stream
-    while True:
+    while not rospy.is_shutdown():
 
         # grab the current frame, then handle if we are using a
         # VideoStream or VideoCapture object
@@ -127,7 +195,7 @@ def tracker_init():
             break
 
     print('ROI selected' + '\n' + 'Press <T> in the "Frame" window to start tracking')
-    while True:
+    while not rospy.is_shutdown():
 
         # grab the current frame, then handle if we are using a
         # VideoStream or VideoCapture object
