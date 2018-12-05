@@ -13,15 +13,11 @@ roslib.load_manifest('opencv_work')
 
 def callback(data):
 
-    # extract relevant data
-    theta = data.data[4]
-    pos_data = data.data[0:3]
-    print theta
-    #pos_data = pos_data.reshape((2, 2))
-    #rotation_angle = data.data[4]
+    rotation_angle = data.data[4]
+    pos_data = data.data[0:4].reshape((2, 2))
 
-    # print pos_data + '\n' + rotation_angle
-    # rospy.loginfo('X COM: %f', data.data)
+    print('Position Data: \n' + str(pos_data) + '\n' + 'Rotation Angle: \n' + str(rotation_angle) + '\n')
+
     # rospy.loginfo(data)
 
 

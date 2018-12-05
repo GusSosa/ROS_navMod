@@ -39,7 +39,7 @@ def talker():
                 pix_com_data = pix_com_data.flatten()
 
                 vert_data = np.append(pix_com_data, theta)
-                print(theta)
+                print(vert_data)
 
                 # publish data
                 # rospy.loginfo(vert_data)
@@ -58,10 +58,10 @@ def talker():
             # close all windows and leave loop
             cv2.destroyAllWindows()
             break
+
         except KeyboardInterrupt:
             print("Exiting.")
             break
-
 
 if __name__ == '__main__':
     try:
