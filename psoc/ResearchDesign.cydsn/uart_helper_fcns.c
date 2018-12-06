@@ -121,6 +121,7 @@ void UART_Command_Parser() {
                 // Return the resulting data that was stored.
                 sprintf(transmit_buffer, "Stored an input of %f, %f, %f, %f\r\n", current_control[0],
                     current_control[1], current_control[2], current_control[3]);
+                tensioning = 0;
                 controller_status = 1;
                 first_loop_1 = 1;
                 first_loop_2 = 1;
@@ -136,9 +137,63 @@ void UART_Command_Parser() {
                 // did not receive exactly 4 control inputs.
                 sprintf(transmit_buffer, "Error!! You typed %s, which gave %i control inputs when 4 were expected.\r\n", receive_buffer, num_filled);
             }
+            break;
             
-
-       
+        case 't':    
+            sscanf(receive_buffer, "t %f", &tension_control);
+            if (tension_control == 1) {
+                first_loop_1 = 1;
+                motor_1 = 1;
+                current_control[0] = current_control[0] + 30;
+            }
+            else if (tension_control == -1) {
+                first_loop_1 = 1;
+                motor_1 = 1;                
+                current_control[0] = current_control[0] - 30;
+            }
+            else if (tension_control == 2) {
+                first_loop_2 = 1;
+                motor_2 = 1;
+                current_control[1] = current_control[1] + 30;
+            }
+            else if (tension_control == -2) {
+                first_loop_2 = 1;
+                motor_2 = 1;
+                current_control[1] = current_control[1] - 30;
+            }         
+            else if (tension_control == 3) {
+                first_loop_3 = 1;
+                motor_3 = 1;
+                current_control[2] = current_control[2] + 30;
+            }
+            else if (tension_control == -3) {
+                first_loop_3 = 1;
+                motor_3 = 1;                
+                current_control[2] = current_control[2] - 30;
+            }
+            else if (tension_control == 4) {
+                first_loop_4 = 1;
+                motor_4 = 1;
+                current_control[3] = current_control[3] + 30;
+            }
+            else if (tension_control == -4) {
+                first_loop_4 = 1;
+                motor_4 = 1;                
+                current_control[3] = current_control[3] - 30;
+            }
+            //tensioning = 1;
+            controller_status = 1;
+            break;
+            
+        case 'd':
+            current_control[0] = 0;
+            current_control[1] = 0;
+            current_control[2] = 0;
+            current_control[3] = 0;
+            count_1 = 0;
+            count_2 = 0;
+            count_3 = 0;
+            count_4 = 0;
             break;
             
         case 'q':
