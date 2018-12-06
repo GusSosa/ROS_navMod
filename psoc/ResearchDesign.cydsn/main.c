@@ -29,6 +29,7 @@ int16 count_4 = 0;
 
 int controller_status = 0;
 int tensioning = 0;
+float tension_control; 
 
 // Move any of the following variables (needed across functions)
 // to the data_storage files.
@@ -66,8 +67,56 @@ CY_ISR(timer_handler) {
         // Write tensioning function 
         // positive equals a little more tension
         // negative equals a little less tension
-        
+        if (tension_control == 1) {
+            controller_status = 1;
+            current_control[0] = 20;
+            first_loop_1 = 1;
+            motor_1 = 1; 
+        }
+        else if (tension_control == -1) {
+            controller_status = 1;
+            current_control[0] = -20;
+            first_loop_1 = 1;
+            motor_1 = 1; 
+        }
+        else if (tension_control == 2) {
+            controller_status = 1;
+            current_control[1] = 20;
+            first_loop_2 = 1;
+            motor_2 = 1; 
+        }
+        else if (tension_control == -2) {
+            controller_status = 1;
+            current_control[1] = -20;
+            first_loop_2 = 1;
+            motor_2 = 1; 
+        }
+        else if (tension_control == 3) {
+            controller_status = 1;
+            current_control[2] = 20;
+            first_loop_3 = 1;
+            motor_3 = 1; 
+        }
+        else if (tension_control == -3) {
+            controller_status = 1;
+            current_control[2] = -20;
+            first_loop_3 = 1;
+            motor_3 = 1; 
+        }
+        else if (tension_control == 4) {
+            controller_status = 1;
+            current_control[3] = 20;
+            first_loop_4 = 1;
+            motor_4 = 1; 
+        }
+        else if (tension_control == -4) {
+            controller_status = 1;
+            current_control[3] = -20;
+            first_loop_4 = 1;
+            motor_4 = 1; 
+        }
     }
+    
     
     if (controller_status == 1) {
         
@@ -256,7 +305,14 @@ CY_ISR(timer_handler) {
 //            UART_PutString(buf4);
 //           
 //        }
-//    }        
+//    }       
+        if (tensioning == 1) {
+            count_1 = 0;
+            count_2 = 0;
+            count_3 = 0;
+            count_4 = 0;
+            tensioning = 0; 
+        }
     }
 
     

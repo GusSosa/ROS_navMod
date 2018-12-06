@@ -136,9 +136,12 @@ void UART_Command_Parser() {
                 // did not receive exactly 4 control inputs.
                 sprintf(transmit_buffer, "Error!! You typed %s, which gave %i control inputs when 4 were expected.\r\n", receive_buffer, num_filled);
             }
+            break;
             
-
-       
+        case 't':    
+            sscanf(receive_buffer, "t %f", &tension_control);
+            tensioning = 1;
+             sprintf(transmit_buffer, "Tensioning, %f", tension_control);
             break;
             
         case 'q':
