@@ -7,8 +7,8 @@
  *
  * ========================================
 */
-#define PWM_MAX 1000
-#define PWM_INIT 500
+#define PWM_MAX 700
+#define PWM_INIT 350
 #define PWM_MIN 150
 #define TENSION_TICKS 25 
 
@@ -18,6 +18,7 @@
 // so it's safe to include them directly here.
 #include <project.h>
 #include <math.h>
+#include <stdlib.h>
 #include "stdio.h"
 #include "uart_helper_fcns.h"
 #include "data_storage.h"
@@ -63,64 +64,12 @@ float CUR_ERROR_4 = 0;
 int print = 1;
 int direction_1 = 1;
 
-CY_ISR(timer_handler) { 
-    if (tensioning == 1) {
-        
-        if (tension_control == 1) {
-            controller_status = 1;
-            current_control[0] = current_control[0] + TENSION_TICKS;
-            first_loop_1 = 1;
-            motor_1 = 1; 
-        }
-        else if (tension_control == -1) {
-            controller_status = 1;
-            current_control[0] = current_control[0] -TENSION_TICKS;
-            first_loop_1 = 1;
-            motor_1 = 1; 
-        }
-        else if (tension_control == 2) {
-            controller_status = 1;
-            current_control[1] = current_control[1] + TENSION_TICKS;
-            first_loop_2 = 1;
-            motor_2 = 1; 
-        }
-        else if (tension_control == -2) {
-            controller_status = 1;
-            current_control[1] = current_control[1] -TENSION_TICKS;
-            first_loop_2 = 1;
-            motor_2 = 1; 
-        }
-        else if (tension_control == 3) {
-            controller_status = 1;
-            current_control[2] = current_control[2] + TENSION_TICKS;
-            first_loop_3 = 1;
-            motor_3 = 1; 
-        }
-        else if (tension_control == -3) {
-            controller_status = 1;
-            current_control[2] = current_control[2] - TENSION_TICKS;
-            first_loop_3 = 1;
-            motor_3 = 1; 
-        }
-        else if (tension_control == 4) {
-            controller_status = 1;
-            current_control[3] = current_control[3] + TENSION_TICKS;
-            first_loop_4 = 1;
-            motor_4 = 1; 
-        }
-        else if (tension_control == -4) {
-            controller_status = 1;
-            current_control[3] = current_control[3] - TENSION_TICKS;
-            first_loop_4 = 1;
-            motor_4 = 1; 
-        }
-    }
-      
-    if (controller_status == 1) {
-        
+void move_motor_1() {
         // MOTOR 1 
-        float TICKS_1 = current_control[0];        
+        float TICKS_1 = current_control[0];
+        
         CUR_ERROR_1 = TICKS_1 - count_1;
+        
         // Determine direction of rotation
         if (CUR_ERROR_1 > 0) {
             Pin_High_1_Write(1);
@@ -132,8 +81,10 @@ CY_ISR(timer_handler) {
             Pin_Low_1_Write(1);
             direction_1 = 0;
         }
+        
         // Calculate proportional control 1
         proportional_1 = fabs(CUR_ERROR_1) * Kp;
+        
         // Set PWM 1
         if (first_loop_1 == 1) {
             if (fabs(CUR_ERROR_1) > 15) {
@@ -158,10 +109,14 @@ CY_ISR(timer_handler) {
            else {
                PWM_1_WriteCompare(PWM_MIN); } 
         }
-        
+}
+
+void move_motor_2() {
         // MOTOR 2 
         float TICKS_2 = current_control[1];
+        
         CUR_ERROR_2 = TICKS_2 - count_2;
+        
         // Determine direction of rotation
         if (CUR_ERROR_2 > 0) {
             Pin_High_2_Write(1);
@@ -171,9 +126,9 @@ CY_ISR(timer_handler) {
             Pin_High_2_Write(0);
             Pin_Low_2_Write(1);
         }
+        
         // Calculate proportional control 2
         proportional_2 = fabs(CUR_ERROR_2) * Kp;
-        
         
         // Set PWM 2
         if (first_loop_2 == 1) {
@@ -198,10 +153,15 @@ CY_ISR(timer_handler) {
             }
            else {
                PWM_2_WriteCompare(PWM_MIN); } 
-        }
+        }    
+    
+}
+void move_motor_3() {
          // MOTOR 3 
         float TICKS_3 = current_control[2];
+        
         CUR_ERROR_3 = TICKS_3 - count_3;
+        
         // Determine direction of rotation
         if (CUR_ERROR_3 > 0) {
             Pin_High_3_Write(1);
@@ -211,6 +171,7 @@ CY_ISR(timer_handler) {
             Pin_High_3_Write(0);
             Pin_Low_3_Write(1);
         }
+        
         // Calculate proportional control 3
         proportional_3 = fabs(CUR_ERROR_3) * Kp;
 
@@ -237,12 +198,15 @@ CY_ISR(timer_handler) {
             }
            else {
                PWM_3_WriteCompare(PWM_MIN); } 
-        }
-        
-        
+        }    
+}
+
+void move_motor_4() {
         // MOTOR 4 
         float TICKS_4 = current_control[3];
+        
         CUR_ERROR_4 = TICKS_4 - count_4;
+        
         // Determine direction of rotation
         if (CUR_ERROR_4 > 0) {
             Pin_High_4_Write(1);
@@ -252,6 +216,7 @@ CY_ISR(timer_handler) {
             Pin_High_4_Write(0);
             Pin_Low_4_Write(1);
         }
+        
         // Calculate proportional control 4
         proportional_4 = fabs(CUR_ERROR_4) * Kp;
 
@@ -278,40 +243,35 @@ CY_ISR(timer_handler) {
             }
            else {
                PWM_4_WriteCompare(PWM_MIN); } 
-        }
-     tensioning = 0;   
-//    if ((motor_1==0) && (motor_2==0) && (motor_3==0) && (motor_4==0)) {
-//        if (print == 1) {
-//            print = 0;
-//            char buf1[6];
-//            UART_PutString("  E1: ");
-//            sprintf(buf1,"%d",count_1);
-//            UART_PutString(buf1);
-//
-//            char buf2[6];
-//            UART_PutString("  E2: ");
-//            sprintf(buf2,"%d",count_2);
-//            UART_PutString(buf2);
-//
-//            char buf3[6];
-//            UART_PutString("  E3: ");
-//            sprintf(buf3,"%d",count_3);
-//            UART_PutString(buf3);
-//
-//            char buf4[6];
-//            UART_PutString("  E4: ");
-//            sprintf(buf4,"%d",count_4);
-//            UART_PutString(buf4);
-//           
-//        }
-//    }       
-    
-    }
+        }    
+}
 
-    
-    
+CY_ISR(timer_handler) { 
+    if (tensioning == 1) {
+        if (fabs(tension_control) == 1) {
+            move_motor_1();
+        }
+        else if (fabs(tension_control) == 2) {
+            move_motor_2();
+        }
+        else if (fabs(tension_control) == 3) {
+            move_motor_3();
+        }
+        else if (fabs(tension_control) == 4) {
+            move_motor_4();
+        }
+    }
+      
+    if (controller_status == 1) {
+        move_motor_1();
+        move_motor_2();
+        move_motor_3();
+        move_motor_4();
+    }    
     Timer_ReadStatusRegister();
 }
+
+
 CY_ISR(encoder_interrupt_handler_1) {
     Pin_Encoder_1_ClearInterrupt();
     
@@ -323,10 +283,10 @@ CY_ISR(encoder_interrupt_handler_1) {
         count_1--;
     }
     
-    char buf[6];
-    sprintf(buf,"%d",count_1);
-    UART_PutString(buf);
-    UART_PutString("E1: ");
+//    char buf[6];
+//    sprintf(buf,"%d",count_1);
+//    UART_PutString(buf);
+//    UART_PutString("E1: ");
 }
 
 CY_ISR(encoder_interrupt_handler_2) {
