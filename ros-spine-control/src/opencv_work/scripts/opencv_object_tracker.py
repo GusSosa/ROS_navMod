@@ -16,6 +16,7 @@ import math
 import rospy
 import calculate_homography
 
+
 # Define the total number of expected clicks for the homography.
 TOT_H_CLICKS = 4
 
@@ -130,7 +131,7 @@ def tracker_init():
     # 1) show a grid of points that should correspond to the grid behind the spine
     #calculate_homography.check_homography(H, vs, args, 16, 16, 2)
     # 2) calculate the distance between two points in the local frame.
-    calculate_homography.test_H(H, vs, args)
+    # calculate_homography.test_H(H, vs, args)
 
     # Back to the rest of the script.
     print('Press <S> in the "Frame" window to select ROI of first object')
@@ -149,7 +150,7 @@ def tracker_init():
 
         # resize the frame (so we can process it faster) and grab the
         # frame dimensions
-        frame = imutils.resize(frame, width=1000)
+        # frame = imutils.resize(frame, width=1000)
         (Height, W) = frame.shape[:2]
 
         # initialize the set of information we'll be displaying on
@@ -268,8 +269,10 @@ def tracker_main(trackers, args, pix_com, vs, fps):
     return (pix_com, key)
 
 
-def tracker_angle(com):
-    [x, y] = com[0, :] - com[1, :]
+def tracker_angle(com1, com2):
+
+    x = com1[0, 0] - com2[0, 0]
+    y = com1[0, 1] - com2[0, 1]
     theta_deg = np.array(math.degrees(math.asin(y / x)), dtype=np.float32)
 
     return theta_deg
