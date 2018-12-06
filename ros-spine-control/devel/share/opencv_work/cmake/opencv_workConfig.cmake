@@ -67,14 +67,14 @@ set(opencv_work_CONFIG_INCLUDED TRUE)
 
 # set variables for source/devel/install prefixes
 if("TRUE" STREQUAL "TRUE")
-  set(opencv_work_SOURCE_PREFIX /home/jmadden/2d-spine-control-hardware/ros-spine-control/src/opencv_work)
-  set(opencv_work_DEVEL_PREFIX /home/jmadden/2d-spine-control-hardware/ros-spine-control/devel)
+  set(opencv_work_SOURCE_PREFIX /home/drew/repositories/2d-spine-control-hardware/ros-spine-control/src/opencv_work)
+  set(opencv_work_DEVEL_PREFIX /home/drew/repositories/2d-spine-control-hardware/ros-spine-control/devel)
   set(opencv_work_INSTALL_PREFIX "")
   set(opencv_work_PREFIX ${opencv_work_DEVEL_PREFIX})
 else()
   set(opencv_work_SOURCE_PREFIX "")
   set(opencv_work_DEVEL_PREFIX "")
-  set(opencv_work_INSTALL_PREFIX /home/jmadden/2d-spine-control-hardware/ros-spine-control/install)
+  set(opencv_work_INSTALL_PREFIX /home/drew/repositories/2d-spine-control-hardware/ros-spine-control/install)
   set(opencv_work_PREFIX ${opencv_work_INSTALL_PREFIX})
 endif()
 
@@ -91,9 +91,9 @@ endif()
 # flag project as catkin-based to distinguish if a find_package()-ed project is a catkin project
 set(opencv_work_FOUND_CATKIN_PROJECT TRUE)
 
-if(NOT "/home/jmadden/2d-spine-control-hardware/ros-spine-control/devel/include " STREQUAL " ")
+if(NOT "/home/drew/repositories/2d-spine-control-hardware/ros-spine-control/devel/include " STREQUAL " ")
   set(opencv_work_INCLUDE_DIRS "")
-  set(_include_dirs "/home/jmadden/2d-spine-control-hardware/ros-spine-control/devel/include")
+  set(_include_dirs "/home/drew/repositories/2d-spine-control-hardware/ros-spine-control/devel/include")
   if(NOT " " STREQUAL " ")
     set(_report "Check the issue tracker '' and consider creating a ticket if the problem has not been reported yet.")
   elseif(NOT " " STREQUAL " ")
@@ -110,7 +110,7 @@ if(NOT "/home/jmadden/2d-spine-control-hardware/ros-spine-control/devel/include 
         message(FATAL_ERROR "Project 'opencv_work' specifies '${idir}' as an include dir, which is not found.  It does not exist in '${include}'.  ${_report}")
       endif()
     else()
-      message(FATAL_ERROR "Project 'opencv_work' specifies '${idir}' as an include dir, which is not found.  It does neither exist as an absolute directory nor in '/home/jmadden/2d-spine-control-hardware/ros-spine-control/src/opencv_work/${idir}'.  ${_report}")
+      message(FATAL_ERROR "Project 'opencv_work' specifies '${idir}' as an include dir, which is not found.  It does neither exist as an absolute directory nor in '/home/drew/repositories/2d-spine-control-hardware/ros-spine-control/src/opencv_work/${idir}'.  ${_report}")
     endif()
     _list_append_unique(opencv_work_INCLUDE_DIRS ${include})
   endforeach()
@@ -129,7 +129,7 @@ foreach(library ${libraries})
     set(lib_path "")
     set(lib "${library}-NOTFOUND")
     # since the path where the library is found is returned we have to iterate over the paths manually
-    foreach(path /home/jmadden/2d-spine-control-hardware/ros-spine-control/devel/lib;/home/jmadden/2d-spine-control-hardware/ros-spine-control/devel/lib;/opt/ros/melodic/lib)
+    foreach(path /home/drew/repositories/2d-spine-control-hardware/ros-spine-control/devel/lib;/home/drew/repositories/2d-spine-control-hardware/ros-spine-control/devel/lib;/opt/ros/melodic/lib)
       find_library(lib ${library}
         PATHS ${path}
         NO_DEFAULT_PATH NO_CMAKE_FIND_ROOT_PATH)

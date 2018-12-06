@@ -19,6 +19,7 @@ import rospy
 # We will use it for the grid behind the spine test setup,
 # which has 16 squares in each direction at 2cm each.
 def check_homography(H, vs, args, nx, ny, length):
+	#### 2018-12-6: NOT WORKING PROPERLY, DO NOT USE, Something wrong with the conversion of frame/image.
 	# vs is a VideoStream object
 	# H should be a 3x3 numpy.array
 	# nx is the number of  in the x direction
@@ -155,6 +156,8 @@ def test_H(H, vs, args):
 	# VideoStream or VideoCapture object
 	frame = vs.read()
 	frame = frame[1] if args.get("video", False) else frame
+	# resize the frame (better viewing, consistent with object tracker.
+	frame = imutils.resize(frame, width=1000)
 	# show the newly-captured frame
 	cv2.imshow("FrameForTesting", frame)
 

@@ -54,7 +54,7 @@ def tracker_init():
     # to use PC webcam, change src=0
     # to use connected USB camera, change src=1 or src=2...
     print("[INFO] starting video stream...")
-    vs = VideoStream(src=0).start()
+    vs = VideoStream(src=1).start()
     time.sleep(0.5)
 
     # initialize the FPS throughput estimator
@@ -84,6 +84,8 @@ def tracker_init():
     # VideoStream or VideoCapture object
     frame = vs.read()
     frame = frame[1] if args.get("video", False) else frame
+    # resize the frame (better viewing, consistent with below.
+    frame = imutils.resize(frame, width=1000)
     # show the newly-captured frame
     cv2.imshow("Frame", frame)
 
@@ -150,7 +152,7 @@ def tracker_init():
 
         # resize the frame (so we can process it faster) and grab the
         # frame dimensions
-        # frame = imutils.resize(frame, width=1000)
+        frame = imutils.resize(frame, width=1000)
         (Height, W) = frame.shape[:2]
 
         # initialize the set of information we'll be displaying on
