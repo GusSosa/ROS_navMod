@@ -141,7 +141,13 @@ void UART_Command_Parser() {
         case 't':    
             sscanf(receive_buffer, "t %f", &tension_control);
             tensioning = 1;
-             sprintf(transmit_buffer, "Tensioning, %f", tension_control);
+            break;
+            
+        case 'd':
+            count_1 = 0;
+            count_2 = 0;
+            count_3 = 0;
+            count_4 = 0;
             break;
             
         case 'q':

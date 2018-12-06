@@ -9,7 +9,8 @@
 */
 #define PWM_MAX 1000
 #define PWM_INIT 500
-#define PWM_MIN 200
+#define PWM_MIN 150
+#define TENSION_TICKS 25 
 
 // Include both the UART helper functions and the header
 // that has the global variables we need.
@@ -21,11 +22,21 @@
 #include "uart_helper_fcns.h"
 #include "data_storage.h"
 
+// EXTERNS FROM DATA_STORAGE.H
+int count_1 = 0;
+int count_2 = 0;
+int count_3 = 0;
+int count_4 = 0;
 
-int16 count_1 = 0;
-int16 count_2 = 0;
-int16 count_3 = 0;
-int16 count_4 = 0;
+int first_loop_1 = 0;
+int first_loop_2 = 0;
+int first_loop_3 = 0;
+int first_loop_4 = 0;
+
+int motor_1 = 0;
+int motor_2 = 0;
+int motor_3 = 0;
+int motor_4 = 0;
 
 int controller_status = 0;
 int tensioning = 0;
@@ -49,77 +60,63 @@ float CUR_ERROR_2 = 0;
 float CUR_ERROR_3 = 0;
 float CUR_ERROR_4 = 0;
 
-int first_loop_1 = 0;
-int first_loop_2 = 0;
-int first_loop_3 = 0;
-int first_loop_4 = 0;
-
-
-int motor_1 = 0;
-int motor_2 = 0;
-int motor_3 = 0;
-int motor_4 = 0;
-
 int print = 1;
+int direction_1 = 1;
 
 CY_ISR(timer_handler) { 
     if (tensioning == 1) {
-        // Write tensioning function 
-        // positive equals a little more tension
-        // negative equals a little less tension
+        
         if (tension_control == 1) {
             controller_status = 1;
-            current_control[0] = 20;
+            current_control[0] = current_control[0] + TENSION_TICKS;
             first_loop_1 = 1;
             motor_1 = 1; 
         }
         else if (tension_control == -1) {
             controller_status = 1;
-            current_control[0] = -20;
+            current_control[0] = current_control[0] -TENSION_TICKS;
             first_loop_1 = 1;
             motor_1 = 1; 
         }
         else if (tension_control == 2) {
             controller_status = 1;
-            current_control[1] = 20;
+            current_control[1] = current_control[1] + TENSION_TICKS;
             first_loop_2 = 1;
             motor_2 = 1; 
         }
         else if (tension_control == -2) {
             controller_status = 1;
-            current_control[1] = -20;
+            current_control[1] = current_control[1] -TENSION_TICKS;
             first_loop_2 = 1;
             motor_2 = 1; 
         }
         else if (tension_control == 3) {
             controller_status = 1;
-            current_control[2] = 20;
+            current_control[2] = current_control[2] + TENSION_TICKS;
             first_loop_3 = 1;
             motor_3 = 1; 
         }
         else if (tension_control == -3) {
             controller_status = 1;
-            current_control[2] = -20;
+            current_control[2] = current_control[2] - TENSION_TICKS;
             first_loop_3 = 1;
             motor_3 = 1; 
         }
         else if (tension_control == 4) {
             controller_status = 1;
-            current_control[3] = 20;
+            current_control[3] = current_control[3] + TENSION_TICKS;
             first_loop_4 = 1;
             motor_4 = 1; 
         }
         else if (tension_control == -4) {
             controller_status = 1;
-            current_control[3] = -20;
+            current_control[3] = current_control[3] - TENSION_TICKS;
             first_loop_4 = 1;
             motor_4 = 1; 
         }
     }
-    
-    
+      
     if (controller_status == 1) {
-        
         
         // MOTOR 1 
         float TICKS_1 = current_control[0];        
@@ -128,10 +125,12 @@ CY_ISR(timer_handler) {
         if (CUR_ERROR_1 > 0) {
             Pin_High_1_Write(1);
             Pin_Low_1_Write(0);
+            direction_1 = 1;
         }
         else {
             Pin_High_1_Write(0);
             Pin_Low_1_Write(1);
+            direction_1 = 0;
         }
         // Calculate proportional control 1
         proportional_1 = fabs(CUR_ERROR_1) * Kp;
@@ -280,7 +279,7 @@ CY_ISR(timer_handler) {
            else {
                PWM_4_WriteCompare(PWM_MIN); } 
         }
-        
+     tensioning = 0;   
 //    if ((motor_1==0) && (motor_2==0) && (motor_3==0) && (motor_4==0)) {
 //        if (print == 1) {
 //            print = 0;
@@ -306,13 +305,7 @@ CY_ISR(timer_handler) {
 //           
 //        }
 //    }       
-        if (tensioning == 1) {
-            count_1 = 0;
-            count_2 = 0;
-            count_3 = 0;
-            count_4 = 0;
-            tensioning = 0; 
-        }
+    
     }
 
     
@@ -322,17 +315,18 @@ CY_ISR(timer_handler) {
 CY_ISR(encoder_interrupt_handler_1) {
     Pin_Encoder_1_ClearInterrupt();
     
-    if (Pin_High_1_Read() == 1 && Pin_Low_1_Read() == 0) {
-        count_1++;
+    //if (Pin_High_1_Read() == 1 && Pin_Low_1_Read() == 0) {
+    if (direction_1 == 1) {
+    count_1++;
     }
-    else {
+    else if (direction_1 == 0) {
         count_1--;
     }
     
-//    char buf[6];
-//    sprintf(buf,"%d",count_1);
-//    UART_PutString(buf);
-//    UART_PutString("E1: ");
+    char buf[6];
+    sprintf(buf,"%d",count_1);
+    UART_PutString(buf);
+    UART_PutString("E1: ");
 }
 
 CY_ISR(encoder_interrupt_handler_2) {
