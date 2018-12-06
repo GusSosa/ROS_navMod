@@ -22,25 +22,22 @@ def callback(data):
     # rospy.loginfo(data)
 
 
-def csv_writer(full_data, path)
+# def csv_writer(full_data, path)
 
-    with open(path if path is not None else raw_input('Input new file name and press <Enter>')) as csv_file
-        writer = csv.writer(csv_file, delimiter=',')
-        for data_line in full_data:
-            writer.writerow(data_line)
+#     with open(path if path is not None else raw_input('Input new file name and press <Enter>')) as csv_file
+#         writer = csv.writer(csv_file, delimiter='')
+#         for data_line in full_data:
+#             writer.writerow(data_line)
 
 
 def listener():
 
-	while not rospy.is_shutdown():
-    	# Launch node as 'cv_listener' and subscribe to topic, 'cv_data'
-    	rospy.init_node('cv_listener', anonymous=True)
-    	rospy.Subscriber('cv_data', numpy_msg(Floats), callback)
+    # Launch node as 'cv_listener' and subscribe to topic, 'cv_data'
+    rospy.init_node('cv_listener', anonymous=True)
+    rospy.Subscriber('cv_data', numpy_msg(Floats), callback)
 
-    	# # spin() simply keeps python from exiting until this node is stopped
-    	# rospy.spin()
-
-    csv_writer(data)
+    # spin() simply keeps python from exiting until this node is stopped
+    rospy.spin()
 
 
 if __name__ == '__main__':
