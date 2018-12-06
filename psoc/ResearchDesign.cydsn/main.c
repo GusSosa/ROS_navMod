@@ -28,7 +28,7 @@ int16 count_3 = 0;
 int16 count_4 = 0;
 
 int controller_status = 0;
-
+int tensioning = 0;
 
 // Move any of the following variables (needed across functions)
 // to the data_storage files.
@@ -62,6 +62,13 @@ int motor_4 = 0;
 int print = 1;
 
 CY_ISR(timer_handler) { 
+    if (tensioning == 1) {
+        // Write tensioning function 
+        // positive equals a little more tension
+        // negative equals a little less tension
+        
+    }
+    
     if (controller_status == 1) {
         
         
@@ -210,7 +217,7 @@ CY_ISR(timer_handler) {
                 motor_4 = 0;
             }
         }
-        else if (fabs(CUR_ERROR_4) < 50){
+        else if (fabs(CUR_ERROR_4) < 25){
             PWM_4_WriteCompare(0);    
             motor_4 = 0;
         }
