@@ -53,7 +53,7 @@ def tracker_init():
     # to use PC webcam, change src=0
     # to use connected USB camera, change src=1 or src=2...
     print("[INFO] starting video stream...")
-    vs = VideoStream(src=1).start()
+    vs = VideoStream(src=0).start()
     time.sleep(0.5)
 
     # initialize the FPS throughput estimator
@@ -228,7 +228,7 @@ def tracker_main(trackers, args, pix_com, vs, fps):
     # resize the frame (so we can process it faster) and grab the
     # frame dimensions
     frame = imutils.resize(frame, width=1000)
-    (H, W) = frame.shape[:2]
+    (Height, W) = frame.shape[:2]
 
     # grab the new bounding box coordinates of the object
     (success, boxes) = trackers.update(frame)
@@ -258,7 +258,7 @@ def tracker_main(trackers, args, pix_com, vs, fps):
     # loop over the info tuples and draw them on our frame
     for (i, (k, v)) in enumerate(info):
         text = "{}: {}".format(k, v)
-        cv2.putText(frame, text, (10, H - ((i * 20) + 20)),
+        cv2.putText(frame, text, (10, Height - ((i * 20) + 20)),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
 
     # show the output frame
