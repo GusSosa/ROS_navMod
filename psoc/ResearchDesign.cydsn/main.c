@@ -7,10 +7,17 @@
  *
  * ========================================
 */
-#define PWM_MAX 700
-#define PWM_INIT 350
-#define PWM_MIN 150
-#define TENSION_TICKS 25 
+// between 300 and 1000
+#define PWM_MAX 500
+// initial should be around 300
+#define PWM_INIT 400
+// min of 70 if at 12V 
+#define PWM_MIN 90
+
+#define TICKS_MIN 10
+#define TICKS_STOP 50
+
+#define TENSION_TICKS 15 
 
 // Include both the UART helper functions and the header
 // that has the global variables we need.
@@ -23,25 +30,32 @@
 #include "uart_helper_fcns.h"
 #include "data_storage.h"
 
+// For transmitting strings with other variables substituted in,
+// (note: re-using variable names since out-of-scope of uart_helper_fcns.)
+#define TRANSMIT_LENGTH 128
+char transmit_buffer[TRANSMIT_LENGTH];
+
 // EXTERNS FROM DATA_STORAGE.H
-int count_1 = 0;
-int count_2 = 0;
-int count_3 = 0;
-int count_4 = 0;
-
-int first_loop_1 = 0;
-int first_loop_2 = 0;
-int first_loop_3 = 0;
-int first_loop_4 = 0;
-
-int motor_1 = 0;
-int motor_2 = 0;
-int motor_3 = 0;
-int motor_4 = 0;
-
-int controller_status = 0;
-int tensioning = 0;
-float tension_control; 
+// now moved to data_storage.c
+//int count_1 = 0;
+//int count_2 = 0;
+//int count_3 = 0;
+//int count_4 = 0;
+//
+//int first_loop_1 = 0;
+//int first_loop_2 = 0;
+//int first_loop_3 = 0;
+//int first_loop_4 = 0;
+//
+//int motor_1 = 0;
+//int motor_2 = 0;
+//int motor_3 = 0;
+//int motor_4 = 0;
+//
+//int controller_status = 0;
+//int tensioning = 0;
+//float tension_control; 
+//int print = 1;
 
 // Move any of the following variables (needed across functions)
 // to the data_storage files.
@@ -49,201 +63,233 @@ float tension_control;
 // made global, though. See uart_helper_fcns.c for an example, and compare
 // the transmit/received buffers with the control input array.
 
-float Kp = 0.2;
+// constants of proportionality are integers.
+int16 Kp = 25;
+//float Kp = 25;
 
-float proportional_1 = 0;
-float proportional_2 = 0;
-float proportional_3 = 0;
-float proportional_4 = 0;
+// integer multiplication (error * Kp) is always an integer,
+// so these are now ints also.
+//float proportional_1 = 0;
+//float proportional_2 = 0;
+//float proportional_3 = 0;
+//float proportional_4 = 0;
 
-float CUR_ERROR_1 = 0;
+int16 proportional_1 = 0;
+int16 proportional_2 = 0;
+int16 proportional_3 = 0;
+int16 proportional_4 = 0;
+
+// these moved to global variables now.
+//float CUR_ERROR_1 = 0;
 float CUR_ERROR_2 = 0;
 float CUR_ERROR_3 = 0;
 float CUR_ERROR_4 = 0;
 
-int print = 1;
 int direction_1 = 1;
 
 void move_motor_1() {
-        // MOTOR 1 
-        float TICKS_1 = current_control[0];
-        
-        CUR_ERROR_1 = TICKS_1 - count_1;
-        
-        // Determine direction of rotation
-        if (CUR_ERROR_1 > 0) {
-            Pin_High_1_Write(1);
-            Pin_Low_1_Write(0);
-            direction_1 = 1;
+    // MOTOR 1 
+    //float TICKS_1 = current_control[0];
+    // Replacing with global int16's
+   
+    error[0] = current_control[0] - count_1;
+    
+    //CUR_ERROR_1 = TICKS_1 - count_1;
+    
+    // Determine direction of rotation
+    if (error[0] > 0) {
+        Pin_High_1_Write(1);
+        Pin_Low_1_Write(0);
+        direction_1 = 1;
+        //UART_PutString("Motor 1, forward");
+    }
+    else {
+        Pin_High_1_Write(0);
+        Pin_Low_1_Write(1);
+        direction_1 = 0;
+        //UART_PutString("Motor 1, backward");
+    }
+    
+    // Calculate proportional control 1
+    // don't need the absolute values anymore!
+    //proportional_1 = fabs(error[0]) * Kp;
+    proportional_1 = abs(error[0]) * Kp;
+    
+    //debugging
+    //sprintf(transmit_buffer, "Proportional input 1 is %i\r\n", proportional_1);
+    //UART_PutString(transmit_buffer);
+    
+    // Set PWM 1
+    if (first_loop_1 == 1) {
+        if (abs(error[0]) >= TICKS_MIN) {
+            PWM_1_WriteCompare(PWM_INIT);
+            first_loop_1 = 0;
         }
-        else {
-            Pin_High_1_Write(0);
-            Pin_Low_1_Write(1);
-            direction_1 = 0;
+//            else if (abs(error[0]) <= 15) {
+//                motor_1 = 0;
+//            }            
+    }
+    else if (abs(error[0]) < TICKS_STOP){
+        PWM_1_WriteCompare(0); 
+        motor_1 = 0;
+    }
+    else if (proportional_1 > 1000) { 
+        PWM_1_WriteCompare(PWM_MAX); 
+    }
+    else if (proportional_1 < 1000) {
+        if (proportional_1 > PWM_MIN) {
+            // we still need the abs() here, since proportional input is +/-
+            // whereas PWM compare value is always > 0.
+            PWM_1_WriteCompare(abs(proportional_1)); 
         }
-        
-        // Calculate proportional control 1
-        proportional_1 = fabs(CUR_ERROR_1) * Kp;
-        
-        // Set PWM 1
-        if (first_loop_1 == 1) {
-            if (fabs(CUR_ERROR_1) > 15) {
-                PWM_1_WriteCompare(PWM_INIT);
-                first_loop_1 = 0;
-            }
-            else if (fabs(CUR_ERROR_1) <= 15) {
-                motor_1 = 0;
-            }            
-        }
-        else if (fabs(CUR_ERROR_1) < 25){
-            PWM_1_WriteCompare(0); 
-            motor_1 = 0;
-            }
-        else if (proportional_1 > 1000) { 
-            PWM_1_WriteCompare(PWM_MAX); 
-        }
-        else if (proportional_1 < 1000) {
-            if (proportional_1 > PWM_MIN) {
-                PWM_1_WriteCompare(proportional_1); 
-            }
-           else {
-               PWM_1_WriteCompare(PWM_MIN); } 
-        }
+       else {
+           PWM_1_WriteCompare(PWM_MIN); } 
+    }
 }
 
 void move_motor_2() {
-        // MOTOR 2 
-        float TICKS_2 = current_control[1];
-        
-        CUR_ERROR_2 = TICKS_2 - count_2;
-        
-        // Determine direction of rotation
-        if (CUR_ERROR_2 > 0) {
-            Pin_High_2_Write(1);
-            Pin_Low_2_Write(0);
+    // MOTOR 2 
+    //float TICKS_2 = current_control[1];
+    
+    //CUR_ERROR_2 = TICKS_2 - count_2;
+    error[1] = current_control[1] - count_2;
+    
+    // debugging
+    //sprintf(transmit_buffer, "Motor 2 manual calc of encoder val: %i\r\n", count_2);
+    //UART_PutString(transmit_buffer);
+    //sprintf(transmit_buffer, "Motor 2 quadrature hardware readout: %i, status: %i\r\n", QuadDec_Motor2_GetCounter(), QuadDec_Motor2_GetEvents());
+    //UART_PutString(transmit_buffer);
+    
+    
+    // Determine direction of rotation
+    if (error[1] > 0) {
+        Pin_High_2_Write(1);
+        Pin_Low_2_Write(0);
+    }
+    else {
+        Pin_High_2_Write(0);
+        Pin_Low_2_Write(1);
+    }
+    
+    // Calculate proportional control 2
+    proportional_2 = abs(error[1]) * Kp;
+    
+    // Set PWM 2
+    if (first_loop_2 == 1) {
+        if (abs(error[1]) >= TICKS_MIN) {
+            PWM_2_WriteCompare(PWM_INIT);
+            first_loop_2 = 0;
         }
-        else {
-            Pin_High_2_Write(0);
-            Pin_Low_2_Write(1);
+//            else if (fabs(error[1]) <= 15) {
+//                motor_2 = 0;
+//            }            
+    }
+    else if (abs(error[1]) < TICKS_STOP){
+        PWM_2_WriteCompare(0);    
+        motor_2 = 0;
+    }
+    else if (proportional_2 > 1000) { 
+        PWM_2_WriteCompare(PWM_MAX); 
+    }
+    else if (proportional_2 < 1000) {
+        if (proportional_2 > PWM_MIN) {
+            PWM_2_WriteCompare(abs(proportional_2)); 
         }
-        
-        // Calculate proportional control 2
-        proportional_2 = fabs(CUR_ERROR_2) * Kp;
-        
-        // Set PWM 2
-        if (first_loop_2 == 1) {
-            if (fabs(CUR_ERROR_2) > 15) {
-                PWM_2_WriteCompare(PWM_INIT);
-                first_loop_2 = 0;
-            }
-            else if (fabs(CUR_ERROR_2) <= 15) {
-                motor_2 = 0;
-            }            
-        }
-        else if (fabs(CUR_ERROR_2) < 25){
-            PWM_2_WriteCompare(0);    
-            motor_2 = 0;
-        }
-        else if (proportional_2 > 1000) { 
-            PWM_2_WriteCompare(PWM_MAX); 
-        }
-        else if (proportional_2 < 1000) {
-            if (proportional_2 > PWM_MIN) {
-                PWM_2_WriteCompare(proportional_2); 
-            }
-           else {
-               PWM_2_WriteCompare(PWM_MIN); } 
-        }    
+       else {
+           PWM_2_WriteCompare(PWM_MIN); } 
+    }    
     
 }
 void move_motor_3() {
-         // MOTOR 3 
-        float TICKS_3 = current_control[2];
-        
-        CUR_ERROR_3 = TICKS_3 - count_3;
-        
-        // Determine direction of rotation
-        if (CUR_ERROR_3 > 0) {
-            Pin_High_3_Write(1);
-            Pin_Low_3_Write(0);
-        }
-        else {
-            Pin_High_3_Write(0);
-            Pin_Low_3_Write(1);
-        }
-        
-        // Calculate proportional control 3
-        proportional_3 = fabs(CUR_ERROR_3) * Kp;
+     // MOTOR 3 
+    //float TICKS_3 = current_control[2];
+    error[2] = current_control[2] - count_3;
+    
+    //CUR_ERROR_3 = TICKS_3 - count_3;
+    
+    // Determine direction of rotation
+    if (error[2] > 0) {
+        Pin_High_3_Write(1);
+        Pin_Low_3_Write(0);
+    }
+    else {
+        Pin_High_3_Write(0);
+        Pin_Low_3_Write(1);
+    }
+    
+    // Calculate proportional control 3
+    proportional_3 = abs(error[2]) * Kp;
 
-        // Set PWM 3
-        if (first_loop_3 == 1) {
-            if (fabs(CUR_ERROR_3) > 15) {
-                PWM_3_WriteCompare(PWM_INIT);
-                first_loop_3 = 0;
-            }
-            else if (fabs(CUR_ERROR_3) <= 15) {
-                motor_3 = 0;
-            }
+    // Set PWM 3
+    if (first_loop_3 == 1) {
+        if (abs(error[2]) >= TICKS_MIN) {
+            PWM_3_WriteCompare(PWM_INIT);
+            first_loop_3 = 0;
         }
-        else if (fabs(CUR_ERROR_3) < 25){
-            PWM_3_WriteCompare(0);   
-            motor_3 = 0;
+//            else if (fabs(error[2]) <= 15) {
+//                motor_3 = 0;
+//            }
+    }
+    else if (abs(error[2]) < TICKS_STOP){
+        PWM_3_WriteCompare(0);   
+        motor_3 = 0;
+    }
+    else if (proportional_3 > 1000) { 
+        PWM_3_WriteCompare(PWM_MAX); 
+    }
+    else if (proportional_3 < 1000) {
+        if (proportional_3 > PWM_MIN) {
+            PWM_3_WriteCompare(abs(proportional_3)); 
         }
-        else if (proportional_3 > 1000) { 
-            PWM_3_WriteCompare(PWM_MAX); 
-        }
-        else if (proportional_3 < 1000) {
-            if (proportional_3 > PWM_MIN) {
-                PWM_3_WriteCompare(proportional_3); 
-            }
-           else {
-               PWM_3_WriteCompare(PWM_MIN); } 
-        }    
+       else {
+           PWM_3_WriteCompare(PWM_MIN); } 
+    }    
 }
 
 void move_motor_4() {
-        // MOTOR 4 
-        float TICKS_4 = current_control[3];
-        
-        CUR_ERROR_4 = TICKS_4 - count_4;
-        
-        // Determine direction of rotation
-        if (CUR_ERROR_4 > 0) {
-            Pin_High_4_Write(1);
-            Pin_Low_4_Write(0);
-        }
-        else {
-            Pin_High_4_Write(0);
-            Pin_Low_4_Write(1);
-        }
-        
-        // Calculate proportional control 4
-        proportional_4 = fabs(CUR_ERROR_4) * Kp;
+    // MOTOR 4 
+    //float TICKS_4 = current_control[3];
+    error[3] = current_control[3] - count_4;
+    
+    //CUR_ERROR_4 = TICKS_4 - count_4;
+    
+    // Determine direction of rotation
+    if (error[3] > 0) {
+        Pin_High_4_Write(1);
+        Pin_Low_4_Write(0);
+    }
+    else {
+        Pin_High_4_Write(0);
+        Pin_Low_4_Write(1);
+    }
+    
+    // Calculate proportional control 4
+    proportional_4 = abs(error[3]) * Kp;
 
-        // Set PWM 4
-        if (first_loop_4 == 1) {
-            if (fabs(CUR_ERROR_4) > 15) {
-                PWM_4_WriteCompare(PWM_INIT);
-                first_loop_4 = 0;
-            }
-            else if (fabs(CUR_ERROR_4) <= 15) {
-                motor_4 = 0;
-            }
+    // Set PWM 4
+    if (first_loop_4 == 1) {
+        if (abs(error[3]) > TICKS_MIN) {
+            PWM_4_WriteCompare(PWM_INIT);
+            first_loop_4 = 0;
         }
-        else if (fabs(CUR_ERROR_4) < 25){
-            PWM_4_WriteCompare(0);    
-            motor_4 = 0;
+//            else if (fabs(error[3]) <= 15) {
+//                motor_4 = 0;
+//            }
+    }
+    else if (abs(error[3]) < TICKS_STOP){
+        PWM_4_WriteCompare(0);    
+        motor_4 = 0;
+    }
+    else if (proportional_4 > 1000) { 
+        PWM_4_WriteCompare(PWM_MAX); 
+    }
+    else if (proportional_4 < 1000) {
+        if (proportional_4 > PWM_MIN) {
+            PWM_4_WriteCompare(abs(proportional_4)); 
         }
-        else if (proportional_4 > 1000) { 
-            PWM_4_WriteCompare(PWM_MAX); 
-        }
-        else if (proportional_4 < 1000) {
-            if (proportional_4 > PWM_MIN) {
-                PWM_4_WriteCompare(proportional_4); 
-            }
-           else {
-               PWM_4_WriteCompare(PWM_MIN); } 
-        }    
+       else {
+           PWM_4_WriteCompare(PWM_MIN); } 
+    }    
 }
 
 CY_ISR(timer_handler) { 
@@ -267,6 +313,7 @@ CY_ISR(timer_handler) {
         move_motor_2();
         move_motor_3();
         move_motor_4();
+        
     }    
     Timer_ReadStatusRegister();
 }
@@ -275,8 +322,7 @@ CY_ISR(timer_handler) {
 CY_ISR(encoder_interrupt_handler_1) {
     Pin_Encoder_1_ClearInterrupt();
     
-    //if (Pin_High_1_Read() == 1 && Pin_Low_1_Read() == 0) {
-    if (direction_1 == 1) {
+    if (Pin_High_1_Read() == 1 && Pin_Low_1_Read() == 0) {
     count_1++;
     }
     else if (direction_1 == 0) {
@@ -361,6 +407,9 @@ int main(void) {
     
     Timer_Start();
     UART_Start();
+    
+    // For the quadrature (encoder) hardware components
+    //QuadDec_Motor2_Start();
     
     // Print a welcome message. Comes from uart_helper_fcns.
     UART_Welcome_Message();

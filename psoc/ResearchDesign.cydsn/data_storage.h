@@ -20,7 +20,20 @@
 // we need an array of 4 floating point numbers
 #define NUM_MOTORS 4
     
-extern float current_control[NUM_MOTORS];
+// some dimensional parameters for use in various places
+// the radius of the spool, and pi as a constant.
+#define RADIUS 1.063087
+#define PI 3.1415
+    
+// including the Cypress project file here so that we have access
+// to the int16 data type.
+#include <project.h>
+
+// For the controller: let's store what was originally set, as a float,
+// but then really do all the math in terms of encoder ticks, as ints.
+//extern float current_control[NUM_MOTORS];
+extern int16 current_control[NUM_MOTORS];
+extern float control_in_cm[NUM_MOTORS];
 extern float tension_control;
 
 extern int controller_status;
@@ -42,6 +55,13 @@ extern int count_3;
 extern int count_4;
 
 extern int print;
+
+// For calculating control inputs, store
+// some variable related to the total error in encoder ticks.
+// used for prop, int, and deriv terms.
+extern int16 error[NUM_MOTORS];
+extern int16 integral_error[NUM_MOTORS];
+extern int16 deriv_error[NUM_MOTORS];
 
 #endif // DATA_STORAGE_H
 
