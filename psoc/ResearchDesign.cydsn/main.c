@@ -8,13 +8,18 @@
  * ========================================
 */
 // between 300 and 1000
-#define PWM_MAX 300
+#define PWM_MAX 500
 // initial should be around 300
-#define PWM_INIT 300
+#define PWM_INIT 400
 // min of 70 if at 12V 
-#define PWM_MIN 100
+#define PWM_MIN 90
 
-#define TENSION_TICKS 25 
+#define TICKS_MIN 10
+#define TICKS_STOP 50
+
+#define TENSION_TICKS 15 
+
+float Kp = 25;
 
 // Include both the UART helper functions and the header
 // that has the global variables we need.
@@ -53,8 +58,6 @@ float tension_control;
 // made global, though. See uart_helper_fcns.c for an example, and compare
 // the transmit/received buffers with the control input array.
 
-float Kp = 20;
-
 float proportional_1 = 0;
 float proportional_2 = 0;
 float proportional_3 = 0;
@@ -91,15 +94,15 @@ void move_motor_1() {
         
         // Set PWM 1
         if (first_loop_1 == 1) {
-            if (fabs(CUR_ERROR_1) > 15) {
+            if (fabs(CUR_ERROR_1) >= TICKS_MIN) {
                 PWM_1_WriteCompare(PWM_INIT);
                 first_loop_1 = 0;
             }
-            else if (fabs(CUR_ERROR_1) <= 15) {
-                motor_1 = 0;
-            }            
+//            else if (fabs(CUR_ERROR_1) <= 15) {
+//                motor_1 = 0;
+//            }            
         }
-        else if (fabs(CUR_ERROR_1) < 35){
+        else if (fabs(CUR_ERROR_1) < TICKS_STOP){
             PWM_1_WriteCompare(0); 
             motor_1 = 0;
             }
@@ -136,15 +139,15 @@ void move_motor_2() {
         
         // Set PWM 2
         if (first_loop_2 == 1) {
-            if (fabs(CUR_ERROR_2) > 15) {
+            if (fabs(CUR_ERROR_2) >= TICKS_MIN) {
                 PWM_2_WriteCompare(PWM_INIT);
                 first_loop_2 = 0;
             }
-            else if (fabs(CUR_ERROR_2) <= 15) {
-                motor_2 = 0;
-            }            
+//            else if (fabs(CUR_ERROR_2) <= 15) {
+//                motor_2 = 0;
+//            }            
         }
-        else if (fabs(CUR_ERROR_2) < 35){
+        else if (fabs(CUR_ERROR_2) < TICKS_STOP){
             PWM_2_WriteCompare(0);    
             motor_2 = 0;
         }
@@ -181,15 +184,15 @@ void move_motor_3() {
 
         // Set PWM 3
         if (first_loop_3 == 1) {
-            if (fabs(CUR_ERROR_3) > 15) {
+            if (fabs(CUR_ERROR_3) >= TICKS_MIN) {
                 PWM_3_WriteCompare(PWM_INIT);
                 first_loop_3 = 0;
             }
-            else if (fabs(CUR_ERROR_3) <= 15) {
-                motor_3 = 0;
-            }
+//            else if (fabs(CUR_ERROR_3) <= 15) {
+//                motor_3 = 0;
+//            }
         }
-        else if (fabs(CUR_ERROR_3) < 35){
+        else if (fabs(CUR_ERROR_3) < TICKS_STOP){
             PWM_3_WriteCompare(0);   
             motor_3 = 0;
         }
@@ -226,15 +229,15 @@ void move_motor_4() {
 
         // Set PWM 4
         if (first_loop_4 == 1) {
-            if (fabs(CUR_ERROR_4) > 15) {
+            if (fabs(CUR_ERROR_4) > TICKS_MIN) {
                 PWM_4_WriteCompare(PWM_INIT);
                 first_loop_4 = 0;
             }
-            else if (fabs(CUR_ERROR_4) <= 15) {
-                motor_4 = 0;
-            }
+//            else if (fabs(CUR_ERROR_4) <= 15) {
+//                motor_4 = 0;
+//            }
         }
-        else if (fabs(CUR_ERROR_4) < 35){
+        else if (fabs(CUR_ERROR_4) < TICKS_STOP){
             PWM_4_WriteCompare(0);    
             motor_4 = 0;
         }
