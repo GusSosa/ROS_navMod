@@ -7,8 +7,6 @@
 # to the 'cv_data' topic
 
 import rospy
-from rospy.numpy_msg import numpy_msg
-from rospy_tutorials.msg import Floats
 import roslib
 from opencv_object_tracker import tracker_init, tracker_main, tracker_angle
 import cv2

@@ -20,6 +20,9 @@ import calculate_homography
 # Define the total number of expected clicks for the homography.
 TOT_H_CLICKS = 4
 
+# Set desired frame width in pixels
+PIX_W = 1500
+
 
 def tracker_init():
 
@@ -84,7 +87,8 @@ def tracker_init():
     # VideoStream or VideoCapture object
     frame = vs.read()
     frame = frame[1] if args.get("video", False) else frame
-    # show the newly-captured frame
+    # resize and show the newly-captured frame
+    frame = imutils.resize(frame, width=PIX_W)
     cv2.imshow("Frame", frame)
 
     # Tell OpenCV that it should call 'on_mouse_click' when the user
@@ -151,6 +155,7 @@ def tracker_init():
         # resize the frame (so we can process it faster) and grab the
         # frame dimensions
         # frame = imutils.resize(frame, width=1000)
+        frame = imutils.resize(frame, width=PIX_W)
         (Height, W) = frame.shape[:2]
 
         # initialize the set of information we'll be displaying on
@@ -228,7 +233,7 @@ def tracker_main(trackers, args, pix_com, vs, fps):
 
     # resize the frame (so we can process it faster) and grab the
     # frame dimensions
-    frame = imutils.resize(frame, width=1000)
+    frame = imutils.resize(frame, width=PIX_W)
     (H, W) = frame.shape[:2]
 
     # grab the new bounding box coordinates of the object
