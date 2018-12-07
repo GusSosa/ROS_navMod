@@ -116,11 +116,18 @@ void UART_Command_Parser() {
             // The floats can be put directly into the global variable.
             num_filled = sscanf(receive_buffer, "u %f %f %f %f", &current_control[0],
                    &current_control[1], &current_control[2], &current_control[3]);
+            
             // Print out a message according to how much was parsed.
             if( num_filled == 4 ){
                 // Return the resulting data that was stored.
                 sprintf(transmit_buffer, "Stored an input of %f, %f, %f, %f\r\n", current_control[0],
                     current_control[1], current_control[2], current_control[3]);
+                float radius = 1.063087;
+                //float radius = 0.5;
+                current_control[0] = (1185.36*current_control[0])/(2*3.1415*radius);
+                current_control[1] = (1185.36*current_control[1])/(2*3.1415*radius);
+                current_control[2] = (1185.36*current_control[2])/(2*3.1415*radius);
+                current_control[3] = (1185.36*current_control[3])/(2*3.1415*radius);
                 tensioning = 0;
                 controller_status = 1;
                 first_loop_1 = 1;
@@ -186,6 +193,11 @@ void UART_Command_Parser() {
             break;
             
         case 'd':
+            PWM_1_WriteCompare(0);
+            PWM_2_WriteCompare(0);
+            PWM_3_WriteCompare(0);
+            PWM_4_WriteCompare(0);
+            
             current_control[0] = 0;
             current_control[1] = 0;
             current_control[2] = 0;

@@ -7,9 +7,13 @@
  *
  * ========================================
 */
-#define PWM_MAX 700
-#define PWM_INIT 350
-#define PWM_MIN 150
+// between 300 and 1000
+#define PWM_MAX 300
+// initial should be around 300
+#define PWM_INIT 300
+// min of 70 if at 12V 
+#define PWM_MIN 100
+
 #define TENSION_TICKS 25 
 
 // Include both the UART helper functions and the header
@@ -49,7 +53,7 @@ float tension_control;
 // made global, though. See uart_helper_fcns.c for an example, and compare
 // the transmit/received buffers with the control input array.
 
-float Kp = 0.2;
+float Kp = 20;
 
 float proportional_1 = 0;
 float proportional_2 = 0;
@@ -95,7 +99,7 @@ void move_motor_1() {
                 motor_1 = 0;
             }            
         }
-        else if (fabs(CUR_ERROR_1) < 25){
+        else if (fabs(CUR_ERROR_1) < 35){
             PWM_1_WriteCompare(0); 
             motor_1 = 0;
             }
@@ -140,7 +144,7 @@ void move_motor_2() {
                 motor_2 = 0;
             }            
         }
-        else if (fabs(CUR_ERROR_2) < 25){
+        else if (fabs(CUR_ERROR_2) < 35){
             PWM_2_WriteCompare(0);    
             motor_2 = 0;
         }
@@ -185,7 +189,7 @@ void move_motor_3() {
                 motor_3 = 0;
             }
         }
-        else if (fabs(CUR_ERROR_3) < 25){
+        else if (fabs(CUR_ERROR_3) < 35){
             PWM_3_WriteCompare(0);   
             motor_3 = 0;
         }
@@ -230,7 +234,7 @@ void move_motor_4() {
                 motor_4 = 0;
             }
         }
-        else if (fabs(CUR_ERROR_4) < 25){
+        else if (fabs(CUR_ERROR_4) < 35){
             PWM_4_WriteCompare(0);    
             motor_4 = 0;
         }
@@ -267,6 +271,7 @@ CY_ISR(timer_handler) {
         move_motor_2();
         move_motor_3();
         move_motor_4();
+        
     }    
     Timer_ReadStatusRegister();
 }
@@ -275,8 +280,7 @@ CY_ISR(timer_handler) {
 CY_ISR(encoder_interrupt_handler_1) {
     Pin_Encoder_1_ClearInterrupt();
     
-    //if (Pin_High_1_Read() == 1 && Pin_Low_1_Read() == 0) {
-    if (direction_1 == 1) {
+    if (Pin_High_1_Read() == 1 && Pin_Low_1_Read() == 0) {
     count_1++;
     }
     else if (direction_1 == 0) {
