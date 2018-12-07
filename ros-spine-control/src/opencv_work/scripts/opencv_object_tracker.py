@@ -233,13 +233,8 @@ def tracker_main(trackers, args, pix_com, vs, fps):
 
     # resize the frame (so we can process it faster) and grab the
     # frame dimensions
-<<<<<<< HEAD
     frame = imutils.resize(frame, width=PIX_W)
-    (H, W) = frame.shape[:2]
-=======
-    frame = imutils.resize(frame, width=1000)
     (Height, W) = frame.shape[:2]
->>>>>>> 0175fa21bb53456debb4174b0dee3feddc1a9a1e
 
     # grab the new bounding box coordinates of the object
     (success, boxes) = trackers.update(frame)

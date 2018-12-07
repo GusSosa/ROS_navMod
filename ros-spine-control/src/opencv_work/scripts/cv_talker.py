@@ -20,7 +20,7 @@ roslib.load_manifest('opencv_work')
 def talker():
 
     # set publish node to 'cv_data' and initialize publisher node as 'cv_talker'
-    rospy.init_node('cv_talker', anonymous=True)
+    rospy.init_node('cv_talker', anonymous=False)
     # pub = rospy.Publisher('cv_data', numpy_msg(Floats), queue_size=10)
     pub = rospy.Publisher('cv_data', SpineState, queue_size=10)
     rate = rospy.Rate(100)  # 10hz

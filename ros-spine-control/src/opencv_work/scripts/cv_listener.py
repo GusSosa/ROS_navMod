@@ -18,7 +18,7 @@ def callback(data):
     # rotation_angle = data.data[4]
     # pos_data = data.data[0:4].reshape((2, 2))
 
-    print('Position Data: \n' + str(pos_data) + '\n' + 'Rotation Angle: \n' + str(rotation_angle) + '\n')
+    print('Position Data: \n' + str(data.com1) + '\n' + str(data.com2) + '\n' + 'Rotation Angle: \n' + str(data.rotation) + '\n')
 
     # rospy.loginfo(data)
 
@@ -26,7 +26,7 @@ def callback(data):
 def listener():
 
     # Launch node as 'cv_listener' and subscribe to topic, 'cv_data'
-    rospy.init_node('cv_listener', anonymous=True)
+    rospy.init_node('cv_listener', anonymous=False)
     rospy.Subscriber('cv_data', SpineState, callback)
 
     # spin() simply keeps python from exiting until this node is stopped
