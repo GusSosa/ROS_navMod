@@ -20,6 +20,9 @@ import calculate_homography
 # Define the total number of expected clicks for the homography.
 TOT_H_CLICKS = 4
 
+# Set desired frame width in pixels
+PIX_W = 1500
+
 
 def tracker_init():
 
@@ -84,9 +87,9 @@ def tracker_init():
     # VideoStream or VideoCapture object
     frame = vs.read()
     frame = frame[1] if args.get("video", False) else frame
-    # resize the frame (better viewing, consistent with below.
-    frame = imutils.resize(frame, width=1000)
-    # show the newly-captured frame
+
+    # resize and show the newly-captured frame
+    frame = imutils.resize(frame, width=PIX_W)
     cv2.imshow("Frame", frame)
 
     # Tell OpenCV that it should call 'on_mouse_click' when the user
@@ -131,7 +134,7 @@ def tracker_init():
 
     # Testing:
     # 1) show a grid of points that should correspond to the grid behind the spine
-    #calculate_homography.check_homography(H, vs, args, 16, 16, 2)
+    # calculate_homography.check_homography(H, vs, args, 16, 16, 2)
     # 2) calculate the distance between two points in the local frame.
     # calculate_homography.test_H(H, vs, args)
 
@@ -152,7 +155,7 @@ def tracker_init():
 
         # resize the frame (so we can process it faster) and grab the
         # frame dimensions
-        frame = imutils.resize(frame, width=1000)
+        frame = imutils.resize(frame, width=PIX_W)
         (Height, W) = frame.shape[:2]
 
         # initialize the set of information we'll be displaying on
@@ -230,8 +233,13 @@ def tracker_main(trackers, args, pix_com, vs, fps):
 
     # resize the frame (so we can process it faster) and grab the
     # frame dimensions
+<<<<<<< HEAD
+    frame = imutils.resize(frame, width=PIX_W)
+    (H, W) = frame.shape[:2]
+=======
     frame = imutils.resize(frame, width=1000)
     (Height, W) = frame.shape[:2]
+>>>>>>> 0175fa21bb53456debb4174b0dee3feddc1a9a1e
 
     # grab the new bounding box coordinates of the object
     (success, boxes) = trackers.update(frame)
