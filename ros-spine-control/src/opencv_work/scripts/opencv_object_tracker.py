@@ -22,6 +22,8 @@ TOT_H_CLICKS = 4
 
 # Set desired frame width in pixels
 PIX_W = 1500
+# Drew's laptop screen is 1600x900 so the above is too big. 
+#PIX_W = 1000
 
 
 def tracker_init():

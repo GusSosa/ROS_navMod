@@ -1,0 +1,10 @@
+Tensegrity Inverse Kinematics Results
+Parameters:
+Dimensionality, Timestamp, Nodes, Cables, Bars, Computation Method
+2, 10-Dec-2018_14-19-50, 8, 4, 6, rigid body
+Inputs: row = timestep and col = cable no.
+2.5323,2.8075,0.071912,-0.20752
+1.9557,3.3872,0.87181,-0.94304
+1.3941,3.9804,1.6797,-1.6613
+0.84842,4.5871,2.4966,-2.3538
+0.31933,5.2081,3.3261,-3.0058
