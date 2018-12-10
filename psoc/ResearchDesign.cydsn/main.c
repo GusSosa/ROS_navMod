@@ -64,7 +64,7 @@ char transmit_buffer[TRANSMIT_LENGTH];
 // the transmit/received buffers with the control input array.
 
 // constants of proportionality are integers.
-int16 Kp = 25;
+int16 Kp = 1;
 //float Kp = 25;
 
 // integer multiplication (error * Kp) is always an integer,
@@ -92,9 +92,14 @@ void move_motor_1() {
     //float TICKS_1 = current_control[0];
     // Replacing with global int16's
    
+    //CUR_ERROR_1 = TICKS_1 - count_1;
     error[0] = current_control[0] - count_1;
     
-    //CUR_ERROR_1 = TICKS_1 - count_1;
+    // debugging
+    sprintf(transmit_buffer, "Motor 1 manual calc of encoder val: %i\r\n", count_1);
+    UART_PutString(transmit_buffer);
+    sprintf(transmit_buffer, "Motor 1 quadrature hardware readout: %i, status: %i\r\n", QuadDec_Motor1_GetCounter(), QuadDec_Motor1_GetEvents());
+    UART_PutString(transmit_buffer);
     
     // Determine direction of rotation
     if (error[0] > 0) {
@@ -114,10 +119,7 @@ void move_motor_1() {
     // don't need the absolute values anymore!
     //proportional_1 = fabs(error[0]) * Kp;
     proportional_1 = abs(error[0]) * Kp;
-    
-    //debugging
-    //sprintf(transmit_buffer, "Proportional input 1 is %i\r\n", proportional_1);
-    //UART_PutString(transmit_buffer);
+   
     
     // Set PWM 1
     if (first_loop_1 == 1) {
@@ -152,7 +154,8 @@ void move_motor_2() {
     //float TICKS_2 = current_control[1];
     
     //CUR_ERROR_2 = TICKS_2 - count_2;
-    error[1] = current_control[1] - count_2;
+    //error[1] = current_control[1] - count_2;
+    error[1] = current_control[1] - QuadDec_Motor2_GetCounter();
     
     // debugging
     //sprintf(transmit_buffer, "Motor 2 manual calc of encoder val: %i\r\n", count_2);
@@ -198,7 +201,6 @@ void move_motor_2() {
        else {
            PWM_2_WriteCompare(PWM_MIN); } 
     }    
-    
 }
 void move_motor_3() {
      // MOTOR 3 
@@ -319,37 +321,38 @@ CY_ISR(timer_handler) {
 }
 
 
-CY_ISR(encoder_interrupt_handler_1) {
-    Pin_Encoder_1_ClearInterrupt();
-    
-    if (Pin_High_1_Read() == 1 && Pin_Low_1_Read() == 0) {
-    count_1++;
-    }
-    else if (direction_1 == 0) {
-        count_1--;
-    }
-    
-//    char buf[6];
-//    sprintf(buf,"%d",count_1);
-//    UART_PutString(buf);
-//    UART_PutString("E1: ");
-}
+//CY_ISR(encoder_interrupt_handler_1) {
+//    Pin_Encoder_1_ClearInterrupt();
+//    
+//    if (Pin_High_1_Read() == 1 && Pin_Low_1_Read() == 0) {
+//    count_1++;
+//    }
+//    else if (direction_1 == 0) {
+//        count_1--;
+//    }
+//    
+////    char buf[6];
+////    sprintf(buf,"%d",count_1);
+////    UART_PutString(buf);
+////    UART_PutString("E1: ");
+//}
 
-CY_ISR(encoder_interrupt_handler_2) {
-    Pin_Encoder_2_ClearInterrupt();
-    
-    if (Pin_High_2_Read() == 1 && Pin_Low_2_Read() == 0) {
-        count_2++;
-    }
-    else {
-        count_2--;
-    }
-    
-//    char buf[6];
-//    sprintf(buf,"%d",count_2);
-//    UART_PutString(buf);
-//    UART_PutString("E2: ");
-}
+//CY_ISR(encoder_interrupt_handler_2) {
+//    Pin_Encoder_2_ClearInterrupt();
+//    
+//    if (Pin_High_2_Read() == 1 && Pin_Low_2_Read() == 0) {
+//        count_2++;
+//    }
+//    else {
+//        count_2--;
+//    }
+//    
+////    char buf[6];
+////    sprintf(buf,"%d",count_2);
+////    UART_PutString(buf);
+////    UART_PutString("E2: ");
+//}
+
 CY_ISR(encoder_interrupt_handler_3) {
     Pin_Encoder_3_ClearInterrupt();
     
@@ -384,9 +387,10 @@ int main(void) {
     
     // Enable interrupts for the chip
     CyGlobalIntEnable;
-
-    isr_Encoder_1_StartEx(encoder_interrupt_handler_1);
-    isr_Encoder_2_StartEx(encoder_interrupt_handler_2);
+    __enable_irq();
+    
+    //isr_Encoder_1_StartEx(encoder_interrupt_handler_1);
+    //isr_Encoder_2_StartEx(encoder_interrupt_handler_2);
     isr_Encoder_3_StartEx(encoder_interrupt_handler_3);
     isr_Encoder_4_StartEx(encoder_interrupt_handler_4);
     
@@ -409,7 +413,10 @@ int main(void) {
     UART_Start();
     
     // For the quadrature (encoder) hardware components
-    //QuadDec_Motor2_Start();
+    QuadDec_Motor1_Start();
+    QuadDec_Motor2_Start();
+    //QuadDec_Motor3_Start();
+    //QuadDec_Motor4_Start();
     
     // Print a welcome message. Comes from uart_helper_fcns.
     UART_Welcome_Message();
