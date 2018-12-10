@@ -17,7 +17,10 @@
 #define TICKS_MIN 10
 #define TICKS_STOP 50
 
-#define TENSION_TICKS 15 
+// For the motors that are using the quadrature decoder component, the above
+// should be multiplied by a factor of 4 (since it's 4 times as precise as our counting.)
+#define TICKS_MIN_QD 40
+#define TICKS_STOP_QD 200
 
 // Include both the UART helper functions and the header
 // that has the global variables we need.
@@ -64,7 +67,10 @@ char transmit_buffer[TRANSMIT_LENGTH];
 // the transmit/received buffers with the control input array.
 
 // constants of proportionality are integers.
-int16 Kp = 1;
+// Manual counting gives about 1/4 the resultion of the quaddec component.
+int16 Kp_man = 25;
+// when using the quadrature decoder, seems we need a Kp smaller than 1.
+float Kp_qd = 0.5;
 //float Kp = 25;
 
 // integer multiplication (error * Kp) is always an integer,
@@ -75,7 +81,8 @@ int16 Kp = 1;
 //float proportional_4 = 0;
 
 int16 proportional_1 = 0;
-int16 proportional_2 = 0;
+//int16 proportional_2 = 0;
+float proportional_2 = 0.0;
 int16 proportional_3 = 0;
 int16 proportional_4 = 0;
 
@@ -96,10 +103,10 @@ void move_motor_1() {
     error[0] = current_control[0] - count_1;
     
     // debugging
-    sprintf(transmit_buffer, "Motor 1 manual calc of encoder val: %i\r\n", count_1);
-    UART_PutString(transmit_buffer);
-    sprintf(transmit_buffer, "Motor 1 quadrature hardware readout: %i, status: %i\r\n", QuadDec_Motor1_GetCounter(), QuadDec_Motor1_GetEvents());
-    UART_PutString(transmit_buffer);
+    //sprintf(transmit_buffer, "Motor 1 manual calc of encoder val: %i\r\n", count_1);
+    //UART_PutString(transmit_buffer);
+    //sprintf(transmit_buffer, "Motor 1 quadrature hardware readout: %i, status: %i\r\n", QuadDec_Motor1_GetCounter(), QuadDec_Motor1_GetEvents());
+    //UART_PutString(transmit_buffer);
     
     // Determine direction of rotation
     if (error[0] > 0) {
@@ -118,7 +125,7 @@ void move_motor_1() {
     // Calculate proportional control 1
     // don't need the absolute values anymore!
     //proportional_1 = fabs(error[0]) * Kp;
-    proportional_1 = abs(error[0]) * Kp;
+    proportional_1 = abs(error[0]) * Kp_man;
    
     
     // Set PWM 1
@@ -158,10 +165,12 @@ void move_motor_2() {
     error[1] = current_control[1] - QuadDec_Motor2_GetCounter();
     
     // debugging
-    //sprintf(transmit_buffer, "Motor 2 manual calc of encoder val: %i\r\n", count_2);
-    //UART_PutString(transmit_buffer);
-    //sprintf(transmit_buffer, "Motor 2 quadrature hardware readout: %i, status: %i\r\n", QuadDec_Motor2_GetCounter(), QuadDec_Motor2_GetEvents());
-    //UART_PutString(transmit_buffer);
+//    sprintf(transmit_buffer, "Motor 2 manual calc of encoder val: %i\r\n", count_2);
+//    UART_PutString(transmit_buffer);
+//    sprintf(transmit_buffer, "Motor 2 quadrature hardware readout: %i, status: %i\r\n", QuadDec_Motor2_GetCounter(), QuadDec_Motor2_GetEvents());
+//    UART_PutString(transmit_buffer);
+//    sprintf(transmit_buffer, "Error signal for motor 2 (quadrature): %i,\r\n", error[1]);
+//    UART_PutString(transmit_buffer);
     
     
     // Determine direction of rotation
@@ -175,11 +184,12 @@ void move_motor_2() {
     }
     
     // Calculate proportional control 2
-    proportional_2 = abs(error[1]) * Kp;
+    proportional_2 = abs(error[1]) * Kp_qd;
     
     // Set PWM 2
+    // Changed to new limits for quaddec use
     if (first_loop_2 == 1) {
-        if (abs(error[1]) >= TICKS_MIN) {
+        if (abs(error[1]) >= TICKS_MIN_QD) {
             PWM_2_WriteCompare(PWM_INIT);
             first_loop_2 = 0;
         }
@@ -187,7 +197,7 @@ void move_motor_2() {
 //                motor_2 = 0;
 //            }            
     }
-    else if (abs(error[1]) < TICKS_STOP){
+    else if (abs(error[1]) < TICKS_STOP_QD){
         PWM_2_WriteCompare(0);    
         motor_2 = 0;
     }
@@ -196,7 +206,7 @@ void move_motor_2() {
     }
     else if (proportional_2 < 1000) {
         if (proportional_2 > PWM_MIN) {
-            PWM_2_WriteCompare(abs(proportional_2)); 
+            PWM_2_WriteCompare(fabs(proportional_2)); 
         }
        else {
            PWM_2_WriteCompare(PWM_MIN); } 
@@ -220,7 +230,7 @@ void move_motor_3() {
     }
     
     // Calculate proportional control 3
-    proportional_3 = abs(error[2]) * Kp;
+    proportional_3 = abs(error[2]) * Kp_man;
 
     // Set PWM 3
     if (first_loop_3 == 1) {
@@ -266,7 +276,7 @@ void move_motor_4() {
     }
     
     // Calculate proportional control 4
-    proportional_4 = abs(error[3]) * Kp;
+    proportional_4 = abs(error[3]) * Kp_man;
 
     // Set PWM 4
     if (first_loop_4 == 1) {
@@ -321,37 +331,37 @@ CY_ISR(timer_handler) {
 }
 
 
-//CY_ISR(encoder_interrupt_handler_1) {
-//    Pin_Encoder_1_ClearInterrupt();
-//    
-//    if (Pin_High_1_Read() == 1 && Pin_Low_1_Read() == 0) {
-//    count_1++;
-//    }
-//    else if (direction_1 == 0) {
-//        count_1--;
-//    }
-//    
-////    char buf[6];
-////    sprintf(buf,"%d",count_1);
-////    UART_PutString(buf);
-////    UART_PutString("E1: ");
-//}
+CY_ISR(encoder_interrupt_handler_1) {
+    Pin_Encoder_1_ClearInterrupt();
+    
+    if (Pin_High_1_Read() == 1 && Pin_Low_1_Read() == 0) {
+    count_1++;
+    }
+    else if (direction_1 == 0) {
+        count_1--;
+    }
+    
+//    char buf[6];
+//    sprintf(buf,"%d",count_1);
+//    UART_PutString(buf);
+//    UART_PutString("E1: ");
+}
 
-//CY_ISR(encoder_interrupt_handler_2) {
-//    Pin_Encoder_2_ClearInterrupt();
-//    
-//    if (Pin_High_2_Read() == 1 && Pin_Low_2_Read() == 0) {
-//        count_2++;
-//    }
-//    else {
-//        count_2--;
-//    }
-//    
-////    char buf[6];
-////    sprintf(buf,"%d",count_2);
-////    UART_PutString(buf);
-////    UART_PutString("E2: ");
-//}
+CY_ISR(encoder_interrupt_handler_2) {
+    Pin_Encoder_2_ClearInterrupt();
+    
+    if (Pin_High_2_Read() == 1 && Pin_Low_2_Read() == 0) {
+        count_2++;
+    }
+    else {
+        count_2--;
+    }
+    
+//    char buf[6];
+//    sprintf(buf,"%d",count_2);
+//    UART_PutString(buf);
+//    UART_PutString("E2: ");
+}
 
 CY_ISR(encoder_interrupt_handler_3) {
     Pin_Encoder_3_ClearInterrupt();
@@ -389,7 +399,7 @@ int main(void) {
     CyGlobalIntEnable;
     __enable_irq();
     
-    //isr_Encoder_1_StartEx(encoder_interrupt_handler_1);
+    isr_Encoder_1_StartEx(encoder_interrupt_handler_1);
     //isr_Encoder_2_StartEx(encoder_interrupt_handler_2);
     isr_Encoder_3_StartEx(encoder_interrupt_handler_3);
     isr_Encoder_4_StartEx(encoder_interrupt_handler_4);

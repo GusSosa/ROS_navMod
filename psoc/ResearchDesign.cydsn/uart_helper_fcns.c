@@ -117,14 +117,17 @@ void UART_Command_Parser() {
                 // Calculate the control inputs in terms of encoder ticks.
                 // Assignment to an int automatically casts the float.
                 float radius = 1.063087;
-                float ticks_per_rev = 4741.44;
+                float ticks_per_rev_man = 1185.36;
+                float ticks_per_rev_qd = 4741.44;
                 //float radius = 0.5;
                 // casting occurs automatically here.
                 // TO-DO: replace with the #define'd constants. More efficient.
-                current_control[0] = (ticks_per_rev*control_in_cm[0])/(2*3.1415*radius);
-                current_control[1] = (ticks_per_rev*control_in_cm[1])/(2*3.1415*radius);
-                current_control[2] = (ticks_per_rev*control_in_cm[2])/(2*3.1415*radius);
-                current_control[3] = (ticks_per_rev*control_in_cm[3])/(2*3.1415*radius);
+                // We use the number of ticks according to either our manual counting or
+                // the quad dec component's counting.
+                current_control[0] = (ticks_per_rev_man*control_in_cm[0])/(2*3.1415*radius);
+                current_control[1] = (ticks_per_rev_qd*control_in_cm[1])/(2*3.1415*radius);
+                current_control[2] = (ticks_per_rev_man*control_in_cm[2])/(2*3.1415*radius);
+                current_control[3] = (ticks_per_rev_qd*control_in_cm[3])/(2*3.1415*radius);
                 sprintf(transmit_buffer, "Stored an input, converted to encoder ticks, of %i, %i, %i, %i\r\n", current_control[0],
                     current_control[1], current_control[2], current_control[3]);
                 tensioning = 0;
@@ -149,7 +152,7 @@ void UART_Command_Parser() {
         case 'e':
             // values are held in "count."
             sprintf(transmit_buffer, "Current encoder tick counts are %i, %i, %i, %i\r\n", count_1,
-                count_2, count_3, count_4);
+               QuadDec_Motor2_GetCounter(), count_3, count_4);
             break;
             
         // query current error signal (control input - encoder ticks.)
@@ -160,42 +163,43 @@ void UART_Command_Parser() {
             break;
             
         // Tensioning command for small adjustments / calibration.
+        // Now uses the macros from data_storage.h
         case 't':    
             sscanf(receive_buffer, "t %f", &tension_control);
             if (tension_control == 1) {
                 first_loop_1 = 1;
                 motor_1 = 1;
-                current_control[0] = current_control[0] + 30;
+                current_control[0] = current_control[0] + T_TICKS_MAN;
             }
             else if (tension_control == -1) {
                 first_loop_1 = 1;
                 motor_1 = 1;                
-                current_control[0] = current_control[0] - 30;
+                current_control[0] = current_control[0] - T_TICKS_MAN;
             }
             else if (tension_control == 2) {
                 first_loop_2 = 1;
                 motor_2 = 1;
-                current_control[1] = current_control[1] + 30;
+                current_control[1] = current_control[1] + T_TICKS_QD;
             }
             else if (tension_control == -2) {
                 first_loop_2 = 1;
                 motor_2 = 1;
-                current_control[1] = current_control[1] - 30;
+                current_control[1] = current_control[1] - T_TICKS_QD;
             }         
             else if (tension_control == 3) {
                 first_loop_3 = 1;
                 motor_3 = 1;
-                current_control[2] = current_control[2] + 30;
+                current_control[2] = current_control[2] + T_TICKS_MAN;
             }
             else if (tension_control == -3) {
                 first_loop_3 = 1;
                 motor_3 = 1;                
-                current_control[2] = current_control[2] - 30;
+                current_control[2] = current_control[2] - T_TICKS_MAN;
             }
             else if (tension_control == 4) {
                 first_loop_4 = 1;
                 motor_4 = 1;
-                current_control[3] = current_control[3] + 30;
+                current_control[3] = current_control[3] + T_TICKS_MAN;
             }
             else if (tension_control == -4) {
                 first_loop_4 = 1;

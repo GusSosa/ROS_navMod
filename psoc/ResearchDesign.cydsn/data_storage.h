@@ -24,6 +24,12 @@
 // the radius of the spool, and pi as a constant.
 #define RADIUS 1.063087
 #define PI 3.1415
+
+// For the small-amount-change tensioning commant 't',
+// specify a number of encoder ticks to increment.
+// Need different ones for the manually-calc'd ticks vs. quaddec's.
+#define T_TICKS_MAN 30
+#define T_TICKS_QD 120
     
 // including the Cypress project file here so that we have access
 // to the int16 data type.
