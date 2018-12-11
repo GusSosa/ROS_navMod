@@ -81,12 +81,7 @@ CY_ISR( Interrupt_Handler_UART_Receive ){
 }
 
 /**
- * The command parser itself. Currently supports the following:
- * e = enable the PWM
- * x = disable the PWM
- * u float float float float = set the current control input (write to the global variable.)
- * q = query. Return the current control input that's stored in memory.
- * s = hard stop. "The Big Red Button."
+ * The command parser itself. See the welcome message for up-to-date list of commands.
  */
 void UART_Command_Parser() {
     // First, get the command, and switch on it.
@@ -152,7 +147,7 @@ void UART_Command_Parser() {
         case 'e':
             // values are held in "count."
             sprintf(transmit_buffer, "Current encoder tick counts are %i, %i, %i, %i\r\n", QuadDec_Motor1_GetCounter(),
-               QuadDec_Motor2_GetCounter(), count_3, count_4);
+               QuadDec_Motor2_GetCounter(), QuadDec_Motor3_GetCounter(), QuadDec_Motor4_GetCounter());
             break;
             
         // query current error signal (control input - encoder ticks.)
@@ -229,13 +224,14 @@ void UART_Command_Parser() {
             current_control[1] = 0;
             current_control[2] = 0;
             current_control[3] = 0;
-            count_2 = 0;
             count_3 = 0;
             count_4 = 0;
             
             // reset the quadrature encoder counts
             QuadDec_Motor1_SetCounter(0);
             QuadDec_Motor2_SetCounter(0);
+            QuadDec_Motor3_SetCounter(0);
+            QuadDec_Motor4_SetCounter(0);
             
             // also, reset all the error terms.
             error[0] = 0;
