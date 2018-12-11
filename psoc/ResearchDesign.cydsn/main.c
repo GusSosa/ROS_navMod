@@ -28,8 +28,8 @@
 //#define PWM_MIN 1000 //2000
 #define PWM_MIN 90
 
-#define TICKS_MIN 10
-#define TICKS_STOP 50
+//#define TICKS_MIN 10
+//#define TICKS_STOP 50
 //#define TICKS_STOP 100
 
 // For the motors that are using the quadrature decoder component, the above
@@ -86,8 +86,6 @@ float Kd_qd = 0.5;
 // These are *signed*, so cannot be directly used with WriteCompare.
 // Gotta set the direction pins, then abs() this.
 static int16 pwm_controls[NUM_MOTORS] = {0, 0, 0, 0};
-
-int16 proportional_4 = 0;
 
 void move_motor_1() {
     // Proportional term
@@ -161,10 +159,6 @@ void move_motor_1() {
     // Finally, set the stored value for the next iteration's error term.
     // It's safest to do this all the way at the end.
     prev_error[0] = error[0];
-    
-    //debugging
-//    sprintf(transmit_buffer, "Compare value for PWM1: %i\r\n", PWM_1_ReadCompare());
-//    UART_PutString(transmit_buffer);
 }
 
 void move_motor_2() {
@@ -318,49 +312,77 @@ void move_motor_3() {
 }
 
 void move_motor_4() {
-    // MOTOR 4 
-    error[3] = current_control[3] - count_4;
+    // Proportional term
+    error[3] = current_control[3] - QuadDec_Motor4_GetCounter();
     
     // Integral term: discretized integration = addition (scaled.)
-    // Note that we have to prevent buffer overflow here.
+    // Note that we have to prevent integer overflow here.
     if((integral_error[3] + error[3] >= INT16_LOWERBOUND) && (integral_error[3] + error[3] <= INT16_UPPERBOUND)){
         integral_error[3] += error[3];
     }
     
+    // Derivative term. discretized derivative = subtraction.
+    deriv_error[3] = error[3] - prev_error[3];
+    
+    // Calculate the control input.
+    // This automatically casts the integral control input to an int from a float.
+    pwm_controls[3] = error[3] * Kp_qd + integral_error[3] * Ki_qd + deriv_error[3] * Kd_qd;
+    // store an absolute-value version for actual application.
+    int16 pwm_control_3_abs = abs(pwm_controls[3]);
+    
     // Determine direction of rotation
-    if (error[3] > 0) {
+    if (pwm_controls[3] > 0) {
         Pin_High_4_Write(1);
         Pin_Low_4_Write(0);
     }
     else {
         Pin_High_4_Write(0);
         Pin_Low_4_Write(1);
-    }
+    }   
     
-    // Calculate proportional control 4
-    proportional_4 = abs(error[3]) * Kp_man;
-
-    // Set PWM 4
-    if (first_loop_4 == 1) {
-        if (abs(error[3]) > TICKS_MIN) {
+    // Apply the PWM value. Five options:
+    // 1) If we're within tolerance of the target, turn off the PWM.
+    // 2) If not within tolerance, check if first application of control: apply "init" to break static friction
+    // 3) If not within tolerance, lower bound with PWM_MIN.
+    // 4) If not within tolerance and input less than max, apply the calculated input.
+    // 5) If not within tolerance, upper bound with PWM_MAX.
+    
+    // 1) Is absolute encoder value within tolerance?
+    if (abs(error[3]) < TICKS_STOP_QD){
+        PWM_4_WriteCompare(0);    
+        motor_4 = 0;
+        // minor hack for now:
+        // reset the integral terms, so this is a "stopping point"
+        integral_error[3] = 0;
+        // Here, since we're set back to "stop", reset the first loop flag
+        // so that next time, init is applied.
+        first_loop_4 = 1;
+    }
+    // Otherwise, do 2-5.
+    else {
+        // 2) If this is the first application of a control for this "round",
+        // apply something to break static friction.
+        if (first_loop_4 == 1) {
             PWM_4_WriteCompare(PWM_INIT);
             first_loop_4 = 0;
         }
-    }
-    else if (abs(error[3]) < TICKS_STOP){
-        PWM_4_WriteCompare(0);    
-        motor_4 = 0;
-    }
-    else if (proportional_4 > PWM_MAX) { 
-        PWM_4_WriteCompare(PWM_MAX); 
-    }
-    else if (proportional_4 < PWM_MAX) {
-        if (proportional_4 > PWM_MIN) {
-            PWM_4_WriteCompare(abs(proportional_4)); 
+        // 5) Check if upper bounded.
+        else if (pwm_control_3_abs > PWM_MAX) { 
+            PWM_4_WriteCompare(PWM_MAX); 
         }
-       else {
-           PWM_4_WriteCompare(PWM_MIN); } 
-    }    
+        // 3) Check if lower bounded.
+        else if (pwm_control_3_abs < PWM_MIN) {
+            PWM_4_WriteCompare(PWM_MIN); 
+        }
+        // 4) otherwise, we know we're within the min to max.
+        else {
+             // This, right here, is the actual application of our control signal.
+            PWM_4_WriteCompare(pwm_control_3_abs); 
+        }
+    }
+    // Finally, set the stored value for the next iteration's error term.
+    // It's safest to do this all the way at the end.
+    prev_error[3] = error[3];
 }
 
 CY_ISR(timer_handler) { 
@@ -389,59 +411,11 @@ CY_ISR(timer_handler) {
     Timer_ReadStatusRegister();
 }
 
-
-//CY_ISR(encoder_interrupt_handler_1) {
-//    Pin_Encoder_1_ClearInterrupt();
-//    
-//    if (Pin_High_1_Read() == 1 && Pin_Low_1_Read() == 0) {
-//    count_1++;
-//    }
-//    else {
-//        count_1--;
-//    }
-//}
-
-//CY_ISR(encoder_interrupt_handler_2) {
-//    Pin_Encoder_2_ClearInterrupt();
-//    
-//    if (Pin_High_2_Read() == 1 && Pin_Low_2_Read() == 0) {
-//        count_2++;
-//    }
-//    else {
-//        count_2--;
-//    }
-//}
-
-//CY_ISR(encoder_interrupt_handler_3) {
-//    Pin_Encoder_3_ClearInterrupt();
-//    
-//    if (Pin_High_3_Read() == 1 && Pin_Low_3_Read() == 0) {
-//        count_3++;
-//    }
-//    else {
-//        count_3--;
-//    }
-//}
-CY_ISR(encoder_interrupt_handler_4) {
-    Pin_Encoder_4_ClearInterrupt();
-    
-    if (Pin_High_4_Read() == 1 && Pin_Low_4_Read() == 0) {
-        count_4++;
-    }
-    else {
-        count_4--;
-    }
-}
 int main(void) {
     
     // Enable interrupts for the chip
     CyGlobalIntEnable;
     __enable_irq();
-    
-    //isr_Encoder_1_StartEx(encoder_interrupt_handler_1);
-    //isr_Encoder_2_StartEx(encoder_interrupt_handler_2);
-    //isr_Encoder_3_StartEx(encoder_interrupt_handler_3);
-    isr_Encoder_4_StartEx(encoder_interrupt_handler_4);
     
     // Start the interrupt handlers / service routines for each interrupt:
     // UART, main control loop, encoder counting.
@@ -473,8 +447,6 @@ int main(void) {
     for(;;)
     {
         // Nothing to do. Entirely interrupt driven! Hooray!
-//        sprintf(transmit_buffer, "%i\r\n", QuadDec_Motor3_GetCounter());
-//        UART_PutString(transmit_buffer);
     }
 }
 
