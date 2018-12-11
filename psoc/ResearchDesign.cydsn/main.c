@@ -13,8 +13,8 @@
 // Now, outputs are up to 10,000, so everything is times 10.
 // This is to get higher resolution for (e.g.) the integral control,
 // so our control constants don't have to be as small / overflow-y.
-// between 300 * 10 and 1000 * 10
-#define PWM_MAX 5000
+// between 3000 and 1000. Works-ish with 5000.
+#define PWM_MAX 3000
 // initial should be around 4000
 #define PWM_INIT 400
 // min of 90 if at 12V 
@@ -26,7 +26,7 @@
 // For the motors that are using the quadrature decoder component, the above
 // should be multiplied by a factor of 4 (since it's 4 times as precise as our counting.)
 #define TICKS_MIN_QD 40
-#define TICKS_STOP_QD 200
+#define TICKS_STOP_QD 100
 
 // For transmitting strings with other variables substituted in,
 // (note: re-using variable names since out-of-scope of uart_helper_fcns.)
@@ -80,6 +80,7 @@ int16 Kp_man = 25;
 float Kp_qd = 10;
 //float Kp = 25;
 float Ki_qd = 1;
+int Kd_qd = 10;
 
 // integer multiplication (error * Kp) is always an integer,
 // so these are now ints also.
@@ -90,7 +91,7 @@ float Ki_qd = 1;
 
 int16 proportional_1 = 0;
 //int16 proportional_2 = 0;
-float proportional_2 = 0.0;
+//float proportional_2 = 0.0;
 int16 proportional_3 = 0;
 int16 proportional_4 = 0;
 
@@ -169,21 +170,24 @@ void move_motor_2() {
     //error[1] = current_control[1] - count_2;
     error[1] = current_control[1] - QuadDec_Motor2_GetCounter();
     
-    // Integral term: discretized integration = addition (scaled.)
+    // Integral term: discretized integration = addition to sum (scaled.)
     // Note that we have to prevent buffer overflow here.
     if((integral_error[1] + error[1] >= INT16_LOWERBOUND) && (integral_error[1] + error[1] <= INT16_UPPERBOUND)){
         integral_error[1] += error[1];
     }
     
+    // Derivative term. discretized derivative = subtraction.
+    deriv_error[1] = error[1] - prev_error[1];
+    
     // Calculate the control input.
     // This automatically casts the integral control input to an int from a float.
-    pwm_controls[1] = error[1] * Kp_qd + integral_error[1] * Ki_qd;
+    pwm_controls[1] = error[1] * Kp_qd + integral_error[1] * Ki_qd + deriv_error[1] * Kd_qd;
     // store an absolute-value version for actual application.
     int16 pwm_control_1_abs = abs(pwm_controls[1]);
     
     //     debugging
-    sprintf(transmit_buffer, "Motor 2 pwm control: %i\r\n", pwm_controls[1]);
-    UART_PutString(transmit_buffer);
+//    sprintf(transmit_buffer, "Motor 2 pwm control: %i\r\n", pwm_controls[1]);
+//    UART_PutString(transmit_buffer);
 //    sprintf(transmit_buffer, "Motor 2 quadrature hardware readout: %i, status: %i\r\n", QuadDec_Motor2_GetCounter(), QuadDec_Motor2_GetEvents());
 //    UART_PutString(transmit_buffer);
 //    sprintf(transmit_buffer, "Error signal for motor 2 (quadrature): %i,\r\n", error[1]);
@@ -202,25 +206,28 @@ void move_motor_2() {
     // Calculate proportional control 2
     //proportional_2 = abs(error[1]) * Kp_qd;
 
-//    if (abs(error[1]) < TICKS_STOP_QD){
-//        PWM_2_WriteCompare(0);    
-//        motor_2 = 0;
-//    }
+    if (abs(error[1]) < TICKS_STOP_QD){
+        PWM_2_WriteCompare(0);    
+        motor_2 = 0;
+        // minor hack for now:
+        // reset the integral terms, so this is a "stopping point"
+        integral_error[1] = 0;
+    }
     if (pwm_control_1_abs > PWM_MAX) { 
         PWM_2_WriteCompare(PWM_MAX); 
     }
     else if (pwm_control_1_abs < PWM_MAX) {
-        PWM_2_WriteCompare(pwm_control_1_abs); 
-//        if (pwm_control_1_abs > PWM_MIN) {
-//            // This, right here, is the actual application of our control signal.
-//            PWM_2_WriteCompare(pwm_control_1_abs); 
-//            //     debugging
-//            sprintf(transmit_buffer, "Applied PWM to motor 2: %i\r\n", pwm_control_1_abs);
-//            UART_PutString(transmit_buffer);
-//        }
-//       else {
-//           PWM_2_WriteCompare(PWM_MIN); } 
+        if (pwm_control_1_abs > PWM_MIN) {
+            // This, right here, is the actual application of our control signal.
+            PWM_2_WriteCompare(pwm_control_1_abs); 
+            //     debugging
+        }
+       else {
+           PWM_2_WriteCompare(PWM_MIN); } 
     }    
+    // Finally, set the stored value for the next iteration's error term.
+    // It's safest to do this all the way at the end.
+    prev_error[1] = error[1];
 }
 
 void move_motor_3() {

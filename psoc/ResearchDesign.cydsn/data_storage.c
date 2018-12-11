@@ -50,6 +50,7 @@ int print = 1;
 // used for prop, int, and deriv terms.
 int16 error[NUM_MOTORS] = {0, 0, 0, 0};
 int16 integral_error[NUM_MOTORS] = {0, 0, 0, 0};
+int16 prev_error[NUM_MOTORS] = {0, 0, 0, 0};
 int16 deriv_error[NUM_MOTORS] = {0, 0, 0, 0};
 
 

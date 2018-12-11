@@ -73,6 +73,8 @@ extern int print;
 // used for prop, int, and deriv terms.
 extern int16 error[NUM_MOTORS];
 extern int16 integral_error[NUM_MOTORS];
+// for the derivative term, need to store previous control input.
+extern int16 prev_error[NUM_MOTORS];
 extern int16 deriv_error[NUM_MOTORS];
 
 #endif // DATA_STORAGE_H
