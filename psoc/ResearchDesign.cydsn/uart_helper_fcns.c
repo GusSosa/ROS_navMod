@@ -158,8 +158,9 @@ void UART_Command_Parser() {
         // query current error signal (control input - encoder ticks.)
         case 'r':
             // values held in "error."
-            sprintf(transmit_buffer, "Current error signals are: P = {%i, %i, %i, %i}, I = {%i, %i, %i, %i}\r\n", error[0],
-                error[1], error[2], error[3], integral_error[0], integral_error[1], integral_error[2], integral_error[3]);
+            sprintf(transmit_buffer, "Current error signals are:\r\n P = {%i, %i, %i, %i}, \r\n I = {%i, %i, %i, %i}, \r\n D = {%i, %i, %i, %i}\r\n", error[0],
+                error[1], error[2], error[3], integral_error[0], integral_error[1], integral_error[2], 
+                integral_error[3], deriv_error[0], deriv_error[1], deriv_error[2], deriv_error[3]);
             break;
             
         // Tensioning command for small adjustments / calibration.
@@ -233,6 +234,10 @@ void UART_Command_Parser() {
             count_3 = 0;
             count_4 = 0;
             
+            // reset the quadrature encoder counts
+            QuadDec_Motor1_SetCounter(0);
+            QuadDec_Motor2_SetCounter(0);
+            
             // also, reset all the error terms.
             error[0] = 0;
             error[1] = 0;
@@ -243,7 +248,7 @@ void UART_Command_Parser() {
             integral_error[2] = 0;
             integral_error[3] = 0;
             
-            sprintf(transmit_buffer, "Controls and encoder counts reset, PWM now off.\r\n");
+            sprintf(transmit_buffer, "Controls and encoder counts reset, PWM now of.\r\n");
             break;
             
         case 'q':

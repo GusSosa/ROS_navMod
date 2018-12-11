@@ -26,7 +26,7 @@
 // For the motors that are using the quadrature decoder component, the above
 // should be multiplied by a factor of 4 (since it's 4 times as precise as our counting.)
 #define TICKS_MIN_QD 40
-#define TICKS_STOP_QD 100
+#define TICKS_STOP_QD 50
 
 // For transmitting strings with other variables substituted in,
 // (note: re-using variable names since out-of-scope of uart_helper_fcns.)
@@ -43,35 +43,8 @@
 #include "uart_helper_fcns.h"
 #include "data_storage.h"
 
+// for send some debugging messages
 char transmit_buffer[TRANSMIT_LENGTH];
-
-// EXTERNS FROM DATA_STORAGE.H
-// now moved to data_storage.c
-//int count_1 = 0;
-//int count_2 = 0;
-//int count_3 = 0;
-//int count_4 = 0;
-//
-//int first_loop_1 = 0;
-//int first_loop_2 = 0;
-//int first_loop_3 = 0;
-//int first_loop_4 = 0;
-//
-//int motor_1 = 0;
-//int motor_2 = 0;
-//int motor_3 = 0;
-//int motor_4 = 0;
-//
-//int controller_status = 0;
-//int tensioning = 0;
-//float tension_control; 
-//int print = 1;
-
-// Move any of the following variables (needed across functions)
-// to the data_storage files.
-// Any variables which are only needed within one file should not be
-// made global, though. See uart_helper_fcns.c for an example, and compare
-// the transmit/received buffers with the control input array.
 
 // constants of proportionality are integers.
 // Manual counting gives about 1/4 the resultion of the quaddec component.
@@ -80,14 +53,7 @@ int16 Kp_man = 25;
 float Kp_qd = 10;
 //float Kp = 25;
 float Ki_qd = 1;
-int Kd_qd = 10;
-
-// integer multiplication (error * Kp) is always an integer,
-// so these are now ints also.
-//float proportional_1 = 0;
-//float proportional_2 = 0;
-//float proportional_3 = 0;
-//float proportional_4 = 0;
+int Kd_qd = 20;
 
 int16 proportional_1 = 0;
 //int16 proportional_2 = 0;
@@ -185,14 +151,6 @@ void move_motor_2() {
     // store an absolute-value version for actual application.
     int16 pwm_control_1_abs = abs(pwm_controls[1]);
     
-    //     debugging
-//    sprintf(transmit_buffer, "Motor 2 pwm control: %i\r\n", pwm_controls[1]);
-//    UART_PutString(transmit_buffer);
-//    sprintf(transmit_buffer, "Motor 2 quadrature hardware readout: %i, status: %i\r\n", QuadDec_Motor2_GetCounter(), QuadDec_Motor2_GetEvents());
-//    UART_PutString(transmit_buffer);
-//    sprintf(transmit_buffer, "Error signal for motor 2 (quadrature): %i,\r\n", error[1]);
-//    UART_PutString(transmit_buffer);
-    
     // Determine direction of rotation
     if (pwm_controls[1] > 0) {
         Pin_High_2_Write(1);
@@ -232,10 +190,7 @@ void move_motor_2() {
 
 void move_motor_3() {
      // MOTOR 3 
-    //float TICKS_3 = current_control[2];
     error[2] = current_control[2] - count_3;
-    
-    //CUR_ERROR_3 = TICKS_3 - count_3;
     
     // Integral term: discretized integration = addition (scaled.)
     // Note that we have to prevent buffer overflow here.
@@ -262,9 +217,6 @@ void move_motor_3() {
             PWM_3_WriteCompare(PWM_INIT);
             first_loop_3 = 0;
         }
-//            else if (fabs(error[2]) <= 15) {
-//                motor_3 = 0;
-//            }
     }
     else if (abs(error[2]) < TICKS_STOP){
         PWM_3_WriteCompare(0);   
@@ -284,10 +236,7 @@ void move_motor_3() {
 
 void move_motor_4() {
     // MOTOR 4 
-    //float TICKS_4 = current_control[3];
     error[3] = current_control[3] - count_4;
-    
-    //CUR_ERROR_4 = TICKS_4 - count_4;
     
     // Integral term: discretized integration = addition (scaled.)
     // Note that we have to prevent buffer overflow here.
@@ -314,9 +263,6 @@ void move_motor_4() {
             PWM_4_WriteCompare(PWM_INIT);
             first_loop_4 = 0;
         }
-//            else if (fabs(error[3]) <= 15) {
-//                motor_4 = 0;
-//            }
     }
     else if (abs(error[3]) < TICKS_STOP){
         PWM_4_WriteCompare(0);    
@@ -370,11 +316,6 @@ CY_ISR(encoder_interrupt_handler_1) {
     else if (direction_1 == 0) {
         count_1--;
     }
-    
-//    char buf[6];
-//    sprintf(buf,"%d",count_1);
-//    UART_PutString(buf);
-//    UART_PutString("E1: ");
 }
 
 CY_ISR(encoder_interrupt_handler_2) {
@@ -386,11 +327,6 @@ CY_ISR(encoder_interrupt_handler_2) {
     else {
         count_2--;
     }
-    
-//    char buf[6];
-//    sprintf(buf,"%d",count_2);
-//    UART_PutString(buf);
-//    UART_PutString("E2: ");
 }
 
 CY_ISR(encoder_interrupt_handler_3) {
@@ -402,11 +338,6 @@ CY_ISR(encoder_interrupt_handler_3) {
     else {
         count_3--;
     }
-    
-//    char buf[6];
-//    sprintf(buf,"%d",count_3);
-//    UART_PutString(buf);
-//    UART_PutString("E3: ");
 }
 CY_ISR(encoder_interrupt_handler_4) {
     Pin_Encoder_4_ClearInterrupt();
@@ -417,11 +348,6 @@ CY_ISR(encoder_interrupt_handler_4) {
     else {
         count_4--;
     }
-    
-//    char buf[6];
-//    sprintf(buf,"%d",count_4);
-//    UART_PutString(buf);
-//    UART_PutString("E4: ");
 }
 int main(void) {
     
@@ -455,14 +381,15 @@ int main(void) {
     // For the quadrature (encoder) hardware components
     QuadDec_Motor1_Start();
     QuadDec_Motor2_Start();
-    //QuadDec_Motor3_Start();
-    //QuadDec_Motor4_Start();
+    QuadDec_Motor3_Start();
+    QuadDec_Motor4_Start();
     
     // Print a welcome message. Comes from uart_helper_fcns.
     UART_Welcome_Message();
     
     for(;;)
-    {    
+    {
+        // Nothing to do. Entirely interrupt driven! Hooray!
     }
 }
 
