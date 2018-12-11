@@ -124,9 +124,9 @@ void UART_Command_Parser() {
                 // TO-DO: replace with the #define'd constants. More efficient.
                 // We use the number of ticks according to either our manual counting or
                 // the quad dec component's counting.
-                current_control[0] = (ticks_per_rev_man*control_in_cm[0])/(2*3.1415*radius);
+                current_control[0] = (ticks_per_rev_qd*control_in_cm[0])/(2*3.1415*radius);
                 current_control[1] = (ticks_per_rev_qd*control_in_cm[1])/(2*3.1415*radius);
-                current_control[2] = (ticks_per_rev_man*control_in_cm[2])/(2*3.1415*radius);
+                current_control[2] = (ticks_per_rev_qd*control_in_cm[2])/(2*3.1415*radius);
                 current_control[3] = (ticks_per_rev_qd*control_in_cm[3])/(2*3.1415*radius);
                 sprintf(transmit_buffer, "Stored an input, converted to encoder ticks, of %i, %i, %i, %i\r\n", current_control[0],
                     current_control[1], current_control[2], current_control[3]);
@@ -170,12 +170,12 @@ void UART_Command_Parser() {
             if (tension_control == 1) {
                 first_loop_1 = 1;
                 motor_1 = 1;
-                current_control[0] = current_control[0] + T_TICKS_MAN;
+                current_control[0] = current_control[0] + T_TICKS_QD;
             }
             else if (tension_control == -1) {
                 first_loop_1 = 1;
                 motor_1 = 1;                
-                current_control[0] = current_control[0] - T_TICKS_MAN;
+                current_control[0] = current_control[0] - T_TICKS_QD;
             }
             else if (tension_control == 2) {
                 first_loop_2 = 1;
@@ -190,22 +190,22 @@ void UART_Command_Parser() {
             else if (tension_control == 3) {
                 first_loop_3 = 1;
                 motor_3 = 1;
-                current_control[2] = current_control[2] + T_TICKS_MAN;
+                current_control[2] = current_control[2] + T_TICKS_QD;
             }
             else if (tension_control == -3) {
                 first_loop_3 = 1;
                 motor_3 = 1;                
-                current_control[2] = current_control[2] - T_TICKS_MAN;
+                current_control[2] = current_control[2] - T_TICKS_QD;
             }
             else if (tension_control == 4) {
                 first_loop_4 = 1;
                 motor_4 = 1;
-                current_control[3] = current_control[3] + T_TICKS_MAN;
+                current_control[3] = current_control[3] + T_TICKS_QD;
             }
             else if (tension_control == -4) {
                 first_loop_4 = 1;
                 motor_4 = 1;                
-                current_control[3] = current_control[3] - 30;
+                current_control[3] = current_control[3] - T_TICKS_QD;
             }
             //tensioning = 1;
             controller_status = 1;

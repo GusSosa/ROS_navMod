@@ -55,8 +55,6 @@ float Ki_qd = 1;
 int Kd_qd = 20;
 
 int16 proportional_1 = 0;
-//int16 proportional_2 = 0;
-//float proportional_2 = 0.0;
 int16 proportional_3 = 0;
 int16 proportional_4 = 0;
 
@@ -96,7 +94,13 @@ void move_motor_1() {
         Pin_Low_1_Write(1);
     }   
     
-    // Apply the PWM value. Some checking to see if within tolerance for stopping:
+    // Apply the PWM value. Four options:
+    // 1) If we're within tolerance of the target, turn off the PWM.
+    // 2) If not within tolerance, lower bound with PWM_MIN.
+    // 3) If not within tolerance and input less than max, apply the calculated input.
+    // 4) If not within tolerance, upper bound with PWM_MAX.
+    
+    // 1) Is absolute encoder value within tolerance?
     if (abs(error[0]) < TICKS_STOP_QD){
         PWM_1_WriteCompare(0);    
         motor_1 = 0;
@@ -104,21 +108,44 @@ void move_motor_1() {
         // reset the integral terms, so this is a "stopping point"
         integral_error[0] = 0;
     }
-    if (pwm_control_0_abs > PWM_MAX) { 
-        PWM_1_WriteCompare(PWM_MAX); 
-    }
-    else if (pwm_control_0_abs < PWM_MAX) {
-        if (pwm_control_0_abs > PWM_MIN) {
-            // This, right here, is the actual application of our control signal.
+    // Otherwise, do 2-4.
+    else {
+        // 4) Check if upper bounded.
+        if (pwm_control_0_abs > PWM_MAX) { 
+            PWM_1_WriteCompare(PWM_MAX); 
+        }
+        // 2) Check if lower bounded.
+        else if (pwm_control_0_abs < PWM_MIN) {
+            PWM_1_WriteCompare(PWM_MIN); 
+        }
+        // 3) otherwise, we know we're within the min to max.
+        else {
+             // This, right here, is the actual application of our control signal.
             PWM_1_WriteCompare(pwm_control_0_abs); 
         }
-       else {
-           PWM_1_WriteCompare(PWM_MIN); } 
-    }    
+    }
     // Finally, set the stored value for the next iteration's error term.
     // It's safest to do this all the way at the end.
     prev_error[0] = error[0];
 }
+
+//        sprintf(transmit_buffer, "Writing max to PWM1.\r\n");
+//        UART_PutString(transmit_buffer);
+//           sprintf(transmit_buffer, "Writing min to PWM1\r\n");
+//           UART_PutString(transmit_buffer);
+//            sprintf(transmit_buffer, "Writing %i to PWM1\r\n", pwm_control_0_abs);
+//            UART_PutString(transmit_buffer);
+
+//    else if (pwm_control_0_abs < PWM_MAX) {
+//        if (pwm_control_0_abs > PWM_MIN) {
+//            // This, right here, is the actual application of our control signal.
+//            PWM_1_WriteCompare(pwm_control_0_abs); 
+//        }
+//       else {
+//           PWM_1_WriteCompare(PWM_MIN); 
+//        } 
+//    }    
+
 
 void move_motor_2() {
     // MOTOR 2 
@@ -159,7 +186,7 @@ void move_motor_2() {
         // reset the integral terms, so this is a "stopping point"
         integral_error[1] = 0;
     }
-    if (pwm_control_1_abs > PWM_MAX) { 
+    else if (pwm_control_1_abs > PWM_MAX) { 
         PWM_2_WriteCompare(PWM_MAX); 
     }
     else if (pwm_control_1_abs < PWM_MAX) {
@@ -352,6 +379,12 @@ int main(void) {
     // These are found in the corresponding helper files (declarations in .h, implementations in .c)
     isr_UART_StartEx(Interrupt_Handler_UART_Receive);
     isr_Timer_StartEx(timer_handler);
+    
+    // For the quadrature (encoder) hardware components
+    QuadDec_Motor1_Start();
+    QuadDec_Motor2_Start();
+    QuadDec_Motor3_Start();
+    QuadDec_Motor4_Start();
         
     PWM_1_Start();
     PWM_1_WriteCompare(0);
@@ -364,12 +397,6 @@ int main(void) {
     
     Timer_Start();
     UART_Start();
-    
-    // For the quadrature (encoder) hardware components
-    QuadDec_Motor1_Start();
-    QuadDec_Motor2_Start();
-    QuadDec_Motor3_Start();
-    QuadDec_Motor4_Start();
     
     // Print a welcome message. Comes from uart_helper_fcns.
     UART_Welcome_Message();
