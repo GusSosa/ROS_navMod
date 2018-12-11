@@ -61,7 +61,6 @@ extern int motor_2;
 extern int motor_3;
 extern int motor_4;
 
-extern int count_1;
 extern int count_2;
 extern int count_3;
 extern int count_4;

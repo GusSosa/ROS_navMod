@@ -151,7 +151,7 @@ void UART_Command_Parser() {
         // query the encoder ticks (current positions.)
         case 'e':
             // values are held in "count."
-            sprintf(transmit_buffer, "Current encoder tick counts are %i, %i, %i, %i\r\n", count_1,
+            sprintf(transmit_buffer, "Current encoder tick counts are %i, %i, %i, %i\r\n", QuadDec_Motor1_GetCounter(),
                QuadDec_Motor2_GetCounter(), count_3, count_4);
             break;
             
@@ -229,7 +229,6 @@ void UART_Command_Parser() {
             current_control[1] = 0;
             current_control[2] = 0;
             current_control[3] = 0;
-            count_1 = 0;
             count_2 = 0;
             count_3 = 0;
             count_4 = 0;

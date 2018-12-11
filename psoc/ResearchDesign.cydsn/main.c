@@ -51,7 +51,6 @@ char transmit_buffer[TRANSMIT_LENGTH];
 int16 Kp_man = 25;
 // when using the quadrature decoder, seems we need a Kp smaller than 1.
 float Kp_qd = 10;
-//float Kp = 25;
 float Ki_qd = 1;
 int Kd_qd = 20;
 
@@ -66,15 +65,11 @@ int16 proportional_4 = 0;
 // Gotta set the direction pins, then abs() this.
 static int16 pwm_controls[NUM_MOTORS] = {0, 0, 0, 0};
 
-int direction_1 = 1;
-
 void move_motor_1() {
     // MOTOR 1 
-    //float TICKS_1 = current_control[0];
-    // Replacing with global int16's
    
-    //CUR_ERROR_1 = TICKS_1 - count_1;
-    error[0] = current_control[0] - count_1;
+    // Proportional term
+    error[0] = current_control[0] - QuadDec_Motor1_GetCounter();
     
     // Integral term: discretized integration = addition (scaled.)
     // Note that we have to prevent integer overflow here.
@@ -82,58 +77,53 @@ void move_motor_1() {
         integral_error[0] += error[0];
     }
     
+    // Derivative term. discretized derivative = subtraction.
+    deriv_error[0] = error[0] - prev_error[0];
+    
+    // Calculate the control input.
+    // This automatically casts the integral control input to an int from a float.
+    pwm_controls[0] = error[0] * Kp_qd + integral_error[0] * Ki_qd + deriv_error[0] * Kd_qd;
+    // store an absolute-value version for actual application.
+    int16 pwm_control_0_abs = abs(pwm_controls[0]);
+    
     // Determine direction of rotation
-    if (error[0] > 0) {
+    if (pwm_controls[0] > 0) {
         Pin_High_1_Write(1);
         Pin_Low_1_Write(0);
-        direction_1 = 1;
-        //UART_PutString("Motor 1, forward");
     }
     else {
         Pin_High_1_Write(0);
         Pin_Low_1_Write(1);
-        direction_1 = 0;
-        //UART_PutString("Motor 1, backward");
-    }
+    }   
     
-    // Calculate proportional control 1
-    // don't need the absolute values anymore!
-    //proportional_1 = fabs(error[0]) * Kp;
-    proportional_1 = abs(error[0]) * Kp_man;
-   
-    
-    // Set PWM 1
-    if (first_loop_1 == 1) {
-        if (abs(error[0]) >= TICKS_MIN) {
-            PWM_1_WriteCompare(PWM_INIT);
-            first_loop_1 = 0;
-        }
-//            else if (abs(error[0]) <= 15) {
-//                motor_1 = 0;
-//            }            
-    }
-    else if (abs(error[0]) < TICKS_STOP){
-        PWM_1_WriteCompare(0); 
+    // Apply the PWM value. Some checking to see if within tolerance for stopping:
+    if (abs(error[0]) < TICKS_STOP_QD){
+        PWM_1_WriteCompare(0);    
         motor_1 = 0;
+        // minor hack for now:
+        // reset the integral terms, so this is a "stopping point"
+        integral_error[0] = 0;
     }
-    else if (proportional_1 > PWM_MAX) { 
+    if (pwm_control_0_abs > PWM_MAX) { 
         PWM_1_WriteCompare(PWM_MAX); 
     }
-    else if (proportional_1 < PWM_MAX) {
-        if (proportional_1 > PWM_MIN) {
-            // we still need the abs() here, since proportional input is +/-
-            // whereas PWM compare value is always > 0.
-            PWM_1_WriteCompare(abs(proportional_1)); 
+    else if (pwm_control_0_abs < PWM_MAX) {
+        if (pwm_control_0_abs > PWM_MIN) {
+            // This, right here, is the actual application of our control signal.
+            PWM_1_WriteCompare(pwm_control_0_abs); 
         }
        else {
            PWM_1_WriteCompare(PWM_MIN); } 
-    }
+    }    
+    // Finally, set the stored value for the next iteration's error term.
+    // It's safest to do this all the way at the end.
+    prev_error[0] = error[0];
 }
 
 void move_motor_2() {
     // MOTOR 2 
 
-    //error[1] = current_control[1] - count_2;
+    // Proportional term
     error[1] = current_control[1] - QuadDec_Motor2_GetCounter();
     
     // Integral term: discretized integration = addition to sum (scaled.)
@@ -160,10 +150,8 @@ void move_motor_2() {
         Pin_High_2_Write(0);
         Pin_Low_2_Write(1);
     }
-    
-    // Calculate proportional control 2
-    //proportional_2 = abs(error[1]) * Kp_qd;
 
+    // Apply the PWM value. Some checking to see if within tolerance for stopping:
     if (abs(error[1]) < TICKS_STOP_QD){
         PWM_2_WriteCompare(0);    
         motor_2 = 0;
@@ -178,7 +166,6 @@ void move_motor_2() {
         if (pwm_control_1_abs > PWM_MIN) {
             // This, right here, is the actual application of our control signal.
             PWM_2_WriteCompare(pwm_control_1_abs); 
-            //     debugging
         }
        else {
            PWM_2_WriteCompare(PWM_MIN); } 
@@ -307,27 +294,27 @@ CY_ISR(timer_handler) {
 }
 
 
-CY_ISR(encoder_interrupt_handler_1) {
-    Pin_Encoder_1_ClearInterrupt();
-    
-    if (Pin_High_1_Read() == 1 && Pin_Low_1_Read() == 0) {
-    count_1++;
-    }
-    else if (direction_1 == 0) {
-        count_1--;
-    }
-}
+//CY_ISR(encoder_interrupt_handler_1) {
+//    Pin_Encoder_1_ClearInterrupt();
+//    
+//    if (Pin_High_1_Read() == 1 && Pin_Low_1_Read() == 0) {
+//    count_1++;
+//    }
+//    else {
+//        count_1--;
+//    }
+//}
 
-CY_ISR(encoder_interrupt_handler_2) {
-    Pin_Encoder_2_ClearInterrupt();
-    
-    if (Pin_High_2_Read() == 1 && Pin_Low_2_Read() == 0) {
-        count_2++;
-    }
-    else {
-        count_2--;
-    }
-}
+//CY_ISR(encoder_interrupt_handler_2) {
+//    Pin_Encoder_2_ClearInterrupt();
+//    
+//    if (Pin_High_2_Read() == 1 && Pin_Low_2_Read() == 0) {
+//        count_2++;
+//    }
+//    else {
+//        count_2--;
+//    }
+//}
 
 CY_ISR(encoder_interrupt_handler_3) {
     Pin_Encoder_3_ClearInterrupt();
@@ -355,7 +342,7 @@ int main(void) {
     CyGlobalIntEnable;
     __enable_irq();
     
-    isr_Encoder_1_StartEx(encoder_interrupt_handler_1);
+    //isr_Encoder_1_StartEx(encoder_interrupt_handler_1);
     //isr_Encoder_2_StartEx(encoder_interrupt_handler_2);
     isr_Encoder_3_StartEx(encoder_interrupt_handler_3);
     isr_Encoder_4_StartEx(encoder_interrupt_handler_4);

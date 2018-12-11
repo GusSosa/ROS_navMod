@@ -38,7 +38,6 @@ int motor_2 = 0;
 int motor_3 = 0;
 int motor_4 = 0;
 
-int count_1 = 0;
 int count_2 = 0;
 int count_3 = 0;
 int count_4 = 0;
