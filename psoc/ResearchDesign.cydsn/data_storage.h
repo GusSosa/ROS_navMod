@@ -31,6 +31,12 @@
 #define T_TICKS_MAN 30
 #define T_TICKS_QD 120
     
+// Used in a few different places in our project, we prevent overflow of int16s
+// by checking against some arbitrary max value.
+// The values declared in Cypress' code are equivalent to +/- 32,767, see stdint.h
+#define INT16_UPPERBOUND 30000
+#define INT16_LOWERBOUND -30000
+    
 // including the Cypress project file here so that we have access
 // to the int16 data type.
 #include <project.h>

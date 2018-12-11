@@ -158,8 +158,8 @@ void UART_Command_Parser() {
         // query current error signal (control input - encoder ticks.)
         case 'r':
             // values held in "error."
-            sprintf(transmit_buffer, "Current error signal is %i, %i, %i, %i\r\n", error[0],
-                error[1], error[2], error[3]);
+            sprintf(transmit_buffer, "Current error signals are: P = {%i, %i, %i, %i}, I = {%i, %i, %i, %i}\r\n", error[0],
+                error[1], error[2], error[3], integral_error[0], integral_error[1], integral_error[2], integral_error[3]);
             break;
             
         // Tensioning command for small adjustments / calibration.
@@ -219,6 +219,10 @@ void UART_Command_Parser() {
             PWM_2_WriteCompare(0);
             PWM_3_WriteCompare(0);
             PWM_4_WriteCompare(0);
+            PWM_1_Stop();
+            PWM_2_Stop();
+            PWM_3_Stop();
+            PWM_4_Stop();
             
             current_control[0] = 0;
             current_control[1] = 0;
@@ -228,6 +232,17 @@ void UART_Command_Parser() {
             count_2 = 0;
             count_3 = 0;
             count_4 = 0;
+            
+            // also, reset all the error terms.
+            error[0] = 0;
+            error[1] = 0;
+            error[2] = 0;
+            error[3] = 0;
+            integral_error[0] = 0;
+            integral_error[1] = 0;
+            integral_error[2] = 0;
+            integral_error[3] = 0;
+            
             sprintf(transmit_buffer, "Controls and encoder counts reset, PWM now off.\r\n");
             break;
             
@@ -251,6 +266,15 @@ void UART_Command_Parser() {
             UART_ClearTxBuffer();
             // still need to specify some message to send back to the terminal.
             sprintf(transmit_buffer, "Cleared RX and TX buffers for the UART on the PSoC.\r\n");
+            break;
+        
+        case 'n':
+            // enaBle the PWMs, after having pressed d to turn them off.
+            PWM_1_Enable();
+            PWM_2_Enable();
+            PWM_3_Enable();
+            PWM_4_Enable();
+            sprintf(transmit_buffer, "PWMs re-enabled.\r\n");
             break;
             
         default:
@@ -281,6 +305,7 @@ void UART_Welcome_Message(){
     UART_PutString("u float float float float = assign U, control input\r\n");
     UART_PutString("t{-}int = Tensioning for calibration. Small steps in each direction.\r\n");
     UART_PutString("              E.g. t-4 = motor 4, loosen.\r\n");
+    UART_PutString("n = eNable all the PWMs for the motors (useful after d.)\r\n");
     UART_PutString("e = query Encoder ticks (current motor positions.)\r\n");
     UART_PutString("r = query eRror signal, control - encoder ticks.\r\n\n");
     UART_PutString("Recommended use pattern:\r\n");

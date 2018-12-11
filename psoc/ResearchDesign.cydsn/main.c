@@ -7,12 +7,18 @@
  *
  * ========================================
 */
-// between 300 and 1000
-#define PWM_MAX 500
-// initial should be around 300
+
+// Constants and defines for the motors.
+// On 2018-12-10, changed the PWM frequency so the output is scaled.
+// Now, outputs are up to 10,000, so everything is times 10.
+// This is to get higher resolution for (e.g.) the integral control,
+// so our control constants don't have to be as small / overflow-y.
+// between 300 * 10 and 1000 * 10
+#define PWM_MAX 5000
+// initial should be around 4000
 #define PWM_INIT 400
-// min of 70 if at 12V 
-#define PWM_MIN 90
+// min of 90 if at 12V 
+#define PWM_MIN 400
 
 #define TICKS_MIN 10
 #define TICKS_STOP 50
@@ -21,6 +27,10 @@
 // should be multiplied by a factor of 4 (since it's 4 times as precise as our counting.)
 #define TICKS_MIN_QD 40
 #define TICKS_STOP_QD 200
+
+// For transmitting strings with other variables substituted in,
+// (note: re-using variable names since out-of-scope of uart_helper_fcns.)
+#define TRANSMIT_LENGTH 128
 
 // Include both the UART helper functions and the header
 // that has the global variables we need.
@@ -33,9 +43,6 @@
 #include "uart_helper_fcns.h"
 #include "data_storage.h"
 
-// For transmitting strings with other variables substituted in,
-// (note: re-using variable names since out-of-scope of uart_helper_fcns.)
-#define TRANSMIT_LENGTH 128
 char transmit_buffer[TRANSMIT_LENGTH];
 
 // EXTERNS FROM DATA_STORAGE.H
@@ -70,8 +77,9 @@ char transmit_buffer[TRANSMIT_LENGTH];
 // Manual counting gives about 1/4 the resultion of the quaddec component.
 int16 Kp_man = 25;
 // when using the quadrature decoder, seems we need a Kp smaller than 1.
-float Kp_qd = 0.5;
+float Kp_qd = 10;
 //float Kp = 25;
+float Ki_qd = 1;
 
 // integer multiplication (error * Kp) is always an integer,
 // so these are now ints also.
@@ -86,11 +94,10 @@ float proportional_2 = 0.0;
 int16 proportional_3 = 0;
 int16 proportional_4 = 0;
 
-// these moved to global variables now.
-//float CUR_ERROR_1 = 0;
-float CUR_ERROR_2 = 0;
-float CUR_ERROR_3 = 0;
-float CUR_ERROR_4 = 0;
+// A set of local variables for the calculated PWM signals.
+// These are *signed*, so cannot be directly used with WriteCompare.
+// Gotta set the direction pins, then abs() this.
+static int16 pwm_controls[NUM_MOTORS] = {0, 0, 0, 0};
 
 int direction_1 = 1;
 
@@ -102,11 +109,11 @@ void move_motor_1() {
     //CUR_ERROR_1 = TICKS_1 - count_1;
     error[0] = current_control[0] - count_1;
     
-    // debugging
-    //sprintf(transmit_buffer, "Motor 1 manual calc of encoder val: %i\r\n", count_1);
-    //UART_PutString(transmit_buffer);
-    //sprintf(transmit_buffer, "Motor 1 quadrature hardware readout: %i, status: %i\r\n", QuadDec_Motor1_GetCounter(), QuadDec_Motor1_GetEvents());
-    //UART_PutString(transmit_buffer);
+    // Integral term: discretized integration = addition (scaled.)
+    // Note that we have to prevent integer overflow here.
+    if((integral_error[0] + error[0] >= INT16_LOWERBOUND) && (integral_error[0] + error[0] <= INT16_UPPERBOUND)){
+        integral_error[0] += error[0];
+    }
     
     // Determine direction of rotation
     if (error[0] > 0) {
@@ -142,10 +149,10 @@ void move_motor_1() {
         PWM_1_WriteCompare(0); 
         motor_1 = 0;
     }
-    else if (proportional_1 > 1000) { 
+    else if (proportional_1 > PWM_MAX) { 
         PWM_1_WriteCompare(PWM_MAX); 
     }
-    else if (proportional_1 < 1000) {
+    else if (proportional_1 < PWM_MAX) {
         if (proportional_1 > PWM_MIN) {
             // we still need the abs() here, since proportional input is +/-
             // whereas PWM compare value is always > 0.
@@ -158,23 +165,32 @@ void move_motor_1() {
 
 void move_motor_2() {
     // MOTOR 2 
-    //float TICKS_2 = current_control[1];
-    
-    //CUR_ERROR_2 = TICKS_2 - count_2;
+
     //error[1] = current_control[1] - count_2;
     error[1] = current_control[1] - QuadDec_Motor2_GetCounter();
     
-    // debugging
-//    sprintf(transmit_buffer, "Motor 2 manual calc of encoder val: %i\r\n", count_2);
-//    UART_PutString(transmit_buffer);
+    // Integral term: discretized integration = addition (scaled.)
+    // Note that we have to prevent buffer overflow here.
+    if((integral_error[1] + error[1] >= INT16_LOWERBOUND) && (integral_error[1] + error[1] <= INT16_UPPERBOUND)){
+        integral_error[1] += error[1];
+    }
+    
+    // Calculate the control input.
+    // This automatically casts the integral control input to an int from a float.
+    pwm_controls[1] = error[1] * Kp_qd + integral_error[1] * Ki_qd;
+    // store an absolute-value version for actual application.
+    int16 pwm_control_1_abs = abs(pwm_controls[1]);
+    
+    //     debugging
+    sprintf(transmit_buffer, "Motor 2 pwm control: %i\r\n", pwm_controls[1]);
+    UART_PutString(transmit_buffer);
 //    sprintf(transmit_buffer, "Motor 2 quadrature hardware readout: %i, status: %i\r\n", QuadDec_Motor2_GetCounter(), QuadDec_Motor2_GetEvents());
 //    UART_PutString(transmit_buffer);
 //    sprintf(transmit_buffer, "Error signal for motor 2 (quadrature): %i,\r\n", error[1]);
 //    UART_PutString(transmit_buffer);
     
-    
     // Determine direction of rotation
-    if (error[1] > 0) {
+    if (pwm_controls[1] > 0) {
         Pin_High_2_Write(1);
         Pin_Low_2_Write(0);
     }
@@ -184,40 +200,41 @@ void move_motor_2() {
     }
     
     // Calculate proportional control 2
-    proportional_2 = abs(error[1]) * Kp_qd;
-    
-    // Set PWM 2
-    // Changed to new limits for quaddec use
-    if (first_loop_2 == 1) {
-        if (abs(error[1]) >= TICKS_MIN_QD) {
-            PWM_2_WriteCompare(PWM_INIT);
-            first_loop_2 = 0;
-        }
-//            else if (fabs(error[1]) <= 15) {
-//                motor_2 = 0;
-//            }            
-    }
-    else if (abs(error[1]) < TICKS_STOP_QD){
-        PWM_2_WriteCompare(0);    
-        motor_2 = 0;
-    }
-    else if (proportional_2 > 1000) { 
+    //proportional_2 = abs(error[1]) * Kp_qd;
+
+//    if (abs(error[1]) < TICKS_STOP_QD){
+//        PWM_2_WriteCompare(0);    
+//        motor_2 = 0;
+//    }
+    if (pwm_control_1_abs > PWM_MAX) { 
         PWM_2_WriteCompare(PWM_MAX); 
     }
-    else if (proportional_2 < 1000) {
-        if (proportional_2 > PWM_MIN) {
-            PWM_2_WriteCompare(fabs(proportional_2)); 
-        }
-       else {
-           PWM_2_WriteCompare(PWM_MIN); } 
+    else if (pwm_control_1_abs < PWM_MAX) {
+        PWM_2_WriteCompare(pwm_control_1_abs); 
+//        if (pwm_control_1_abs > PWM_MIN) {
+//            // This, right here, is the actual application of our control signal.
+//            PWM_2_WriteCompare(pwm_control_1_abs); 
+//            //     debugging
+//            sprintf(transmit_buffer, "Applied PWM to motor 2: %i\r\n", pwm_control_1_abs);
+//            UART_PutString(transmit_buffer);
+//        }
+//       else {
+//           PWM_2_WriteCompare(PWM_MIN); } 
     }    
 }
+
 void move_motor_3() {
      // MOTOR 3 
     //float TICKS_3 = current_control[2];
     error[2] = current_control[2] - count_3;
     
     //CUR_ERROR_3 = TICKS_3 - count_3;
+    
+    // Integral term: discretized integration = addition (scaled.)
+    // Note that we have to prevent buffer overflow here.
+    if((integral_error[2] + error[2] >= INT16_LOWERBOUND) && (integral_error[2] + error[2] <= INT16_UPPERBOUND)){
+        integral_error[2] += error[2];
+    }
     
     // Determine direction of rotation
     if (error[2] > 0) {
@@ -246,10 +263,10 @@ void move_motor_3() {
         PWM_3_WriteCompare(0);   
         motor_3 = 0;
     }
-    else if (proportional_3 > 1000) { 
+    else if (proportional_3 > PWM_MAX) { 
         PWM_3_WriteCompare(PWM_MAX); 
     }
-    else if (proportional_3 < 1000) {
+    else if (proportional_3 < PWM_MAX) {
         if (proportional_3 > PWM_MIN) {
             PWM_3_WriteCompare(abs(proportional_3)); 
         }
@@ -264,6 +281,12 @@ void move_motor_4() {
     error[3] = current_control[3] - count_4;
     
     //CUR_ERROR_4 = TICKS_4 - count_4;
+    
+    // Integral term: discretized integration = addition (scaled.)
+    // Note that we have to prevent buffer overflow here.
+    if((integral_error[3] + error[3] >= INT16_LOWERBOUND) && (integral_error[3] + error[3] <= INT16_UPPERBOUND)){
+        integral_error[3] += error[3];
+    }
     
     // Determine direction of rotation
     if (error[3] > 0) {
@@ -292,10 +315,10 @@ void move_motor_4() {
         PWM_4_WriteCompare(0);    
         motor_4 = 0;
     }
-    else if (proportional_4 > 1000) { 
+    else if (proportional_4 > PWM_MAX) { 
         PWM_4_WriteCompare(PWM_MAX); 
     }
-    else if (proportional_4 < 1000) {
+    else if (proportional_4 < PWM_MAX) {
         if (proportional_4 > PWM_MIN) {
             PWM_4_WriteCompare(abs(proportional_4)); 
         }
