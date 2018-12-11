@@ -15,7 +15,8 @@
 // so our control constants don't have to be as small / overflow-y.
 // between 3000 and 1000. Works-ish with 5000.
 //#define PWM_MAX 5000
-#define PWM_MAX 500
+//#define PWM_MAX 500
+#define PWM_MAX 800
 //#define PWM_MAX 10000
 // initial should be around 4000
 //#define PWM_INIT 4000
@@ -65,11 +66,12 @@ int16 Kp_man = 25;
 //int Kd_qd = 15;
 
 //float Kp_qd = 10; //12
-//float Kp_qd = 1;
-float Kp_qd = 0.1;
+float Kp_qd = 1;
+//float Kp_qd = 0.1;
 
 //float Kp_qd = 5;
 //float Ki_qd = 5; //0.8
+//float Ki_qd = 0.1;
 float Ki_qd = 0.1;
 
 //float Ki_qd = 2;
@@ -77,17 +79,15 @@ float Ki_qd = 0.1;
 //float Kd_qd = 10; //15
 //float Kd_qd = 0;
 //float Kd_qd = 5;
-float Kd_qd = 0.1;
-
-
-//int16 proportional_1 = 0;
-//int16 proportional_3 = 0;
-int16 proportional_4 = 0;
+//float Kd_qd = 0.1;
+float Kd_qd = 0.5;
 
 // A set of local variables for the calculated PWM signals.
 // These are *signed*, so cannot be directly used with WriteCompare.
 // Gotta set the direction pins, then abs() this.
 static int16 pwm_controls[NUM_MOTORS] = {0, 0, 0, 0};
+
+int16 proportional_4 = 0;
 
 void move_motor_1() {
     // Proportional term
@@ -292,8 +292,6 @@ void move_motor_3() {
     }
     // Otherwise, do 2-5.
     else {
-//        sprintf(transmit_buffer, "Error 3 = %i\r\n", error[2]);
-//        UART_PutString(transmit_buffer);
         // 2) If this is the first application of a control for this "round",
         // apply something to break static friction.
         if (first_loop_3 == 1) {
@@ -317,57 +315,7 @@ void move_motor_3() {
     // Finally, set the stored value for the next iteration's error term.
     // It's safest to do this all the way at the end.
     prev_error[2] = error[2];
-    
-    //debugging
-//    sprintf(transmit_buffer, "Compare value for PWM3: %i\r\n", PWM_3_ReadCompare());
-//    UART_PutString(transmit_buffer);
 }
-
-//void move_motor_3() {
-//     // MOTOR 3 
-//    error[2] = current_control[2] - count_3;
-//    
-//    // Integral term: discretized integration = addition (scaled.)
-//    // Note that we have to prevent buffer overflow here.
-//    if((integral_error[2] + error[2] >= INT16_LOWERBOUND) && (integral_error[2] + error[2] <= INT16_UPPERBOUND)){
-//        integral_error[2] += error[2];
-//    }
-//    
-//    // Determine direction of rotation
-//    if (error[2] > 0) {
-//        Pin_High_3_Write(1);
-//        Pin_Low_3_Write(0);
-//    }
-//    else {
-//        Pin_High_3_Write(0);
-//        Pin_Low_3_Write(1);
-//    }
-//    
-//    // Calculate proportional control 3
-//    proportional_3 = abs(error[2]) * Kp_man;
-//
-//    // Set PWM 3
-//    if (first_loop_3 == 1) {
-//        if (abs(error[2]) >= TICKS_MIN) {
-//            PWM_3_WriteCompare(PWM_INIT);
-//            first_loop_3 = 0;
-//        }
-//    }
-//    else if (abs(error[2]) < TICKS_STOP){
-//        PWM_3_WriteCompare(0);   
-//        motor_3 = 0;
-//    }
-//    else if (proportional_3 > PWM_MAX) { 
-//        PWM_3_WriteCompare(PWM_MAX); 
-//    }
-//    else if (proportional_3 < PWM_MAX) {
-//        if (proportional_3 > PWM_MIN) {
-//            PWM_3_WriteCompare(abs(proportional_3)); 
-//        }
-//       else {
-//           PWM_3_WriteCompare(PWM_MIN); } 
-//    }    
-//}
 
 void move_motor_4() {
     // MOTOR 4 
