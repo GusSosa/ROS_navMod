@@ -116,18 +116,18 @@ void UART_Command_Parser() {
                 //    current_control[1], current_control[2], current_control[3]);
                 // Calculate the control inputs in terms of encoder ticks.
                 // Assignment to an int automatically casts the float.
-                float radius = 1.063087;
-                float ticks_per_rev_man = 1185.36;
+                //float radius = 1.063087;
+                //float ticks_per_rev_man = 1185.36;
                 float ticks_per_rev_qd = 4741.44;
                 //float radius = 0.5;
                 // casting occurs automatically here.
                 // TO-DO: replace with the #define'd constants. More efficient.
                 // We use the number of ticks according to either our manual counting or
                 // the quad dec component's counting.
-                current_control[0] = (ticks_per_rev_qd*control_in_cm[0])/(2*3.1415*radius);
-                current_control[1] = (ticks_per_rev_qd*control_in_cm[1])/(2*3.1415*radius);
-                current_control[2] = (ticks_per_rev_qd*control_in_cm[2])/(2*3.1415*radius);
-                current_control[3] = (ticks_per_rev_qd*control_in_cm[3])/(2*3.1415*radius);
+                current_control[0] = (ticks_per_rev_qd*control_in_cm[0])/(2*3.1415*RADIUS);
+                current_control[1] = (ticks_per_rev_qd*control_in_cm[1])/(2*3.1415*RADIUS);
+                current_control[2] = (ticks_per_rev_qd*control_in_cm[2])/(2*3.1415*RADIUS);
+                current_control[3] = (ticks_per_rev_qd*control_in_cm[3])/(2*3.1415*RADIUS);
                 sprintf(transmit_buffer, "Stored an input, converted to encoder ticks, of %i, %i, %i, %i\r\n", current_control[0],
                     current_control[1], current_control[2], current_control[3]);
                 tensioning = 0;

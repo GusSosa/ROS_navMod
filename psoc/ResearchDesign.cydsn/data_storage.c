@@ -28,10 +28,12 @@ float tension_control = 0.0;
 int controller_status = 0;
 int tensioning = 0;
 
-int first_loop_1 = 0;
-int first_loop_2 = 0;
-int first_loop_3 = 0;
-int first_loop_4 = 0;
+// These flags are used to break static friction on motors.
+// At startup, motors aren't moving, so yes, first loop of application of control.
+int first_loop_1 = 1;
+int first_loop_2 = 1;
+int first_loop_3 = 1;
+int first_loop_4 = 1;
 
 int motor_1 = 0;
 int motor_2 = 0;

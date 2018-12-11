@@ -28,8 +28,10 @@
 // For the small-amount-change tensioning commant 't',
 // specify a number of encoder ticks to increment.
 // Need different ones for the manually-calc'd ticks vs. quaddec's.
-#define T_TICKS_MAN 30
+//#define T_TICKS_MAN 30
 #define T_TICKS_QD 120
+//#define T_TICKS_QD 210
+//#define T_TICKS_QD 50
     
 // Used in a few different places in our project, we prevent overflow of int16s
 // by checking against some arbitrary max value.
