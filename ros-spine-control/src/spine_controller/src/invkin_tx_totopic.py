@@ -44,10 +44,21 @@ def tx_to_topic(file_name):
                                   skip_header=3, max_rows=1)
     print("Using an inverse kinematics file with the parameters:")
     print(invkin_header)
+    # We need to now pick out the number of cables. That's the 4th column
+    # on the csv file. Numpy was giving me some trouble but turning the array into
+    # a list seemed to help.
+    #print(invkin_header.tolist()[0])
+    s = invkin_header.tolist()[3]
     # Then, read the data itself. Starts two rows down from header.
-    invkin_data = np.genfromtxt(file_name, dtype=None, delimiter=",",
+    control_data = np.genfromtxt(file_name, dtype=float, delimiter=",",
                                 skip_header=5)
+    # Split the data into its two parts: 0:s-1 == invkin, remainder == states.
+    #print(control_data)
+    invkin_data = control_data[:, 0:s]
+    # this is numpy notation for MATLAB equivalent control_data(:, s:end)
+    state_data = control_data[:, s:]
     # print(invkin_data.shape)
+    #print(state_data)
 
     # Create a timer object that will sleep long enough to result in
     # a reasonable publishing rate
