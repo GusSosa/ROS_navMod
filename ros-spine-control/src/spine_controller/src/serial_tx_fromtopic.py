@@ -61,6 +61,17 @@ class SerialTxFromTopic:
         # (again recalling that our invkin outputs are in meters, which will never be greater than 1,
         # so the floats will always be 0.something.)
 
+        # We seem to be getting some mis-aligned commands.
+        # So, before anything else, send out a "clear" every time.
+        self.serial_port.write("\n")
+        # give the PSoC a moment
+        # maybe 20 ms?
+        rospy.sleep(0.02)
+        self.serial_port.write("c\n")
+        rospy.sleep(0.02)
+        self.serial_port.write("c\n")
+        rospy.sleep(0.02)
+
         # Thanks to our friends on stackoverflow (https://stackoverflow.com/questions/21008858/formatting-floats-in-a-numpy-array),
         # a nice way to format w/ only certain precision is
         def ik_cmd_formatter(x): return "%.8f" % x
