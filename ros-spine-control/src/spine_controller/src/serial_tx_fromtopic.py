@@ -24,7 +24,9 @@ from rospy.numpy_msg import numpy_msg
 # but that needs to wrap around a standard message type.
 # Seems that arrays are in the *MultiArray messages.
 # We don't need 64 bits because the invkin output is only to a few decimal places
-from std_msgs.msg import Float32MultiArray
+#from std_msgs.msg import Float32MultiArray
+# Now we've got our own message type.
+from spine_controller.msg import InvkinControlCommand
 # also need to echo back a string of the formatted output to the serial port.
 from std_msgs.msg import String
 
@@ -42,13 +44,16 @@ class SerialTxFromTopic:
         # 3) publish the formatted string back out to another debugging topic
 
         # The ndarray is in
-        invkin_command = np.array(message.data)
+        #invkin_command = np.array(message.data)
         # Let's do a string with the following format, which seems to work OK on the PSoC:
         # u (rl1) (rl2) ... (rln)
         # For example,
         # u 0.02 0.476 0.87 0.05
         # The PSoC will then parse the first character as a command (u = this is a control input)
         # and then the remaining numbers with spaces between them.
+
+        # Now using our own message type:
+        invkin_command = np.array(message.invkin_control)
 
         # A discussion on the length of the string:
         # It may be bad to do more than a 32-character message over UART, that's pretty long.
@@ -104,7 +109,8 @@ class SerialTxFromTopic:
         # First, start up the ros node.
         rospy.init_node('serial_tx_fromtopic', anonymous=False)
         # The main functionality here is a subscriber.
-        sub = rospy.Subscriber(topic_name, Float32MultiArray, self.serial_tx_callback)
+        #sub = rospy.Subscriber(topic_name, Float32MultiArray, self.serial_tx_callback)
+        sub = rospy.Subscriber(topic_name, InvkinControlCommand, self.serial_tx_callback)
         # We'll publish commands to a topic just in case someone else wants to use them
         pub = rospy.Publisher('serial_tx_echo', String, queue_size=10)
         # Next, do the serial setup:

@@ -20,6 +20,8 @@ import numpy as np
 # Seems that arrays are in the *MultiArray messages.
 # We don't need 64 bits because the invkin output is only to a few decimal places
 from std_msgs.msg import Float32MultiArray
+# Now, we've got our own message type.
+from spine_controller.msg import InvkinControlCommand
 
 # The primary helper function here opens the csv file,
 # stores the results in a numpy array, and publishes rows of that array
@@ -35,7 +37,8 @@ def tx_to_topic(file_name):
     rospy.init_node('invkin_tx_commands', anonymous=False)
     # We need a publisher. Note we're using the numpy message type, wrapping
     # around the standard message type
-    pub = rospy.Publisher('invkin_tx_commands', numpy_msg(Float32MultiArray), queue_size=10)
+    #pub = rospy.Publisher('invkin_tx_commands', numpy_msg(Float32MultiArray), queue_size=10)
+    pub = rospy.Publisher('invkin_tx_commands', InvkinControlCommand, queue_size=10)
     # Then, read in the csv file.
     # The 3rd row (counting from 0) contains the parameters for this run, and is
     # of mixed type: int, string, int, int, int, string
@@ -76,15 +79,17 @@ def tx_to_topic(file_name):
     # but also need to catch shutdown signals.
     while (current_timestep < max_timestep) and not rospy.is_shutdown():
         # Create the message itself
-        to_publish = Float32MultiArray()
+        #to_publish = Float32MultiArray()
+        to_publish = InvkinControlCommand(invkin_control = invkin_data[current_timestep, :], \
+        	invkin_ref_state = state_data[current_timestep, :])
         # Put in the numpy array
         #to_publish.data = np.array([0.5, 0.5, 0.5, 0.5])
-        to_publish.data = invkin_data[current_timestep, :]
+        #to_publish.data = invkin_data[current_timestep, :]
         # Publish the current_timestep-th message
         pub.publish(to_publish)
         # Echo to the terminal
         print("Timestep " + str(current_timestep) + ", publishing:")
-        print(to_publish.data)
+        print(to_publish.invkin_control)
         # increment the counter
         current_timestep += 1
         # sleep until the next output
