@@ -58,9 +58,7 @@
 char transmit_buffer[TRANSMIT_LENGTH];
 
 // constants of proportionality are integers.
-// Manual counting gives about 1/4 the resultion of the quaddec component.
-int16 Kp_man = 25;
-// when using the quadrature decoder, seems we need a Kp smaller than 1.
+
 //float Kp_qd = 10;
 //float Ki_qd = 1;
 //int Kd_qd = 15;
