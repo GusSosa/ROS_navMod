@@ -144,3 +144,6 @@ bin/
 msg_gen/
 srv_gen/
 *.pyc
+
+# removing file locks (those are per-system.)
+*~lock*
