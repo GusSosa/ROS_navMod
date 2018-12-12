@@ -7,8 +7,8 @@ import roslib
 import rospy
 from opencv_work.msg import SpineState
 
-roslib.load_manifest('opencv_work')
-
+# This apparently isn't needed when we use catkin.
+#roslib.load_manifest('opencv_work')
 
 def callback(data):
 
