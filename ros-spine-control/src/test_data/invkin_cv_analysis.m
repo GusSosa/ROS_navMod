@@ -17,14 +17,14 @@ filepath = '.';
 % The cell array to put everything in
 test_structs = {};
 
-% % Earlier test - data did not have aligned timestamps
-% struct1.datetime_cv = '2018-12-12_120256';
-% struct1.datetime_invkin = '2018-12-12_163130';
-% struct1.start_row_cv = 2161;
-% struct1.end_row_cv = -1;
-% % note that the rows for IK are pre-specified: just 2 to end.
-% % store it
-% test_structs{1} = struct1;
+% Earlier test - data did not have aligned timestamps
+struct1.datetime_cv = '2018-12-12_120256';
+struct1.datetime_invkin = '2018-12-12_163130';
+struct1.start_row_cv = 2161;
+struct1.end_row_cv = -1;
+% note that the rows for IK are pre-specified: just 2 to end.
+% store it
+test_structs{1} = struct1;
 
 % % Test 1 - wrong homography
 % struct1.datetime_cv = '2018-12-12_185559';
@@ -45,14 +45,26 @@ test_structs = {};
 % test_structs{2} = struct2;
 
 % Test 1 - corrected homography
-struct1.datetime_cv = '2018-12-12_192239';
-struct1.datetime_invkin = '2018-12-12_192238';
-%struct1.start_row_cv = 102;
-struct1.start_row_cv = 3;
-struct1.end_row_cv = -1;
-% note that the rows for IK are pre-specified: just 2 to end.
-% store it
-test_structs{1} = struct1;
+% struct1.datetime_cv = '2018-12-12_192239';
+% struct1.datetime_invkin = '2018-12-12_192238';
+% %struct1.start_row_cv = 102;
+% struct1.start_row_cv = 3;
+% struct1.end_row_cv = -1;
+% % note that the rows for IK are pre-specified: just 2 to end.
+% % store it
+% test_structs{1} = struct1;
+
+% % Test on 2018-12-13: moving the camera so the vertebra is in the center of
+% % the frame, with as little distortion as possible.
+% struct1.datetime_cv = '2018-12-13_121644';
+% struct1.datetime_invkin = '2018-12-13_121638_corrected';
+% %struct1.start_row_cv = 102;
+% struct1.start_row_cv = 3;
+% struct1.end_row_cv = -1;
+% % note that the rows for IK are pre-specified: just 2 to end.
+% % store it
+% test_structs{1} = struct1;
+
 
 
 % Call the parser
