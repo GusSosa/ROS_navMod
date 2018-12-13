@@ -117,7 +117,23 @@ for i=1:num_tests
     % Set the limits:
     xlim([10 20]);
     ylim([11 23]);
-
+    
+    % A test. Get a set of aligned data. Let's do a small sampling rate,
+    % like 0.1 sec. We don't want to do too small or else the sampling rate
+    % is meaningless (the frames per sec on the CV is low.)
+    % Data is in millisec, so 0.1 sec = 100.
+    % That's actually pretty inaccurate still. Maybe 2hz. Looks better now.
+    dt = 500;
+    % start at the first index of the data, since we've already pulled out
+    % the set of data we want (THIS WILL CHANGE LATER.)
+    starttime = errors{i}.timestamps_cv(1);
+    % For the data, we concatenate the center of mass and rotations.
+    data_cv_foralignment = [errors{i}.com_cv, errors{i}.rot_cv];
+    [aligned_timestamps, aligned_data] = align_cv_data(errors{i}.timestamps_cv, ...
+        data_cv_foralignment, starttime, dt);
+    % Save the aligned data in the result.
+    errors{i}.aligned_timestamps_cv = aligned_timestamps;
+    errors{i}.aligned_data_cv = aligned_data;
 end
 
 
