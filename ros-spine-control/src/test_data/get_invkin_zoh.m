@@ -41,7 +41,7 @@ for i=1:n_cv
     
     % We now know that the signal at ik_i was applied at cv_time.
     % That's the com_ik and rot_ik.
-    zoh(i, :) = [errors.com_ik_inframe(ik_i, :), errors.rot_ik(ik_i)];
+    zoh(i, :) = [errors.com_ik_inframe(ik_i, :), errors.rot_ik_inframe(ik_i)];
 end
 
 errors.zoh = zoh;

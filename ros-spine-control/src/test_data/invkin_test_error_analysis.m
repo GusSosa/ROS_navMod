@@ -35,7 +35,7 @@ errors = {};
 num_tests = size(test_structs, 2);
 
 for i=1:num_tests
-    % Pull out the parameters for this test.
+    %% Pull out the parameters for this test.
     datetime_cv = test_structs{i}.datetime_cv;
     datetime_invkin = test_structs{i}.datetime_invkin;
     start_row_cv = test_structs{i}.start_row_cv;
@@ -49,7 +49,7 @@ for i=1:num_tests
     file_path_invkin = strcat(path_to_data_folder, '/invkin_datalogger_', ...
         datetime_invkin, '.csv');
     
-    % Read in the data. The cv_datalogger data starts at the 3rd row,
+    %% Read in the data. The cv_datalogger data starts at the 3rd row,
     % and has four columns.
     % MATLAB INDEXES FROM 0 HERE!!!
     data_cv_i = [];
@@ -86,7 +86,7 @@ for i=1:num_tests
     errors{i}.com_ik = data_ik_i(:, 5:6);
     errors{i}.rot_ik = data_ik_i(:, 7);
     
-    % Next, convert the state information between the two frames. 
+    %% Next, convert the state information between the two frames. 
     % The origin of the MATLAB frame is hard to get in the computer vision
     % frame - lots of calculations from where we put the grid - so here's
     % an estimate within a few mm for now.
@@ -97,8 +97,10 @@ for i=1:num_tests
     offset_y = squares_y * 2;
     % In cm, then, 
     errors{i}.com_ik_inframe = errors{i}.com_ik * 100 + [offset_x, offset_y];
+    % The rotation also needs to be converted to degrees.
+    errors{i}.rot_ik_inframe = errors{i}.rot_ik * 180/pi;
     
-    % A plot of the data.
+    %% A plot of the data.
     fontsize = 14;
     errfig = figure;
     hold on;
@@ -118,7 +120,7 @@ for i=1:num_tests
     xlim([10 20]);
     ylim([11 23]);
     
-    % A test. Get a set of aligned data. 
+    %% Get a set of aligned data. 
     % This is necessary so we can zero-order-hold the inverse kinematics
     % inputs, with the right timestamps and indices, for a time error 
     % analysis (subtraction!).
@@ -128,7 +130,7 @@ for i=1:num_tests
     % is meaningless (the frames per sec on the CV is low.)
     % Data is in millisec, so 0.1 sec = 100.
     % That's actually pretty inaccurate still. Maybe 2hz. Looks better now.
-    dt = 500;
+    dt = 100;
     % start at the first index of the data, since we've already pulled out
     % the set of data we want (THIS WILL CHANGE LATER.)
     %starttime = errors{i}.timestamps_cv(1);
@@ -153,8 +155,94 @@ for i=1:num_tests
     errors{i} = get_invkin_zoh(errors{i});
     
     % Finally, we should be able to just subtract to get the state error.
-    % TO-DO: use inframe
     errors{i}.state_error = errors{i}.aligned_data_cv - errors{i}.zoh;
+    
+    %% Make a plot of the errors. Adapted from Drew's script for the MPC
+    % results of summer 2018.
+    
+    % A scaled x-axis, for timestamps. Make it in sec.
+    time_axis = floor(errors{i}.aligned_timestamps_cv / 1000);
+
+    % Create the handle for the overall figure
+    % Also, use the OpenGL renderer so that symbols are formatted correctly.
+    %errors_handle = figure('Renderer', 'opengl');
+    errors_handle = figure;
+    hold on;
+    set(gca,'FontSize',fontsize);
+    % This figure will have 3 smaller plots, so make it larger than my
+    % usual window dimensions.
+    set(errors_handle,'Position',[100,100,450,300]);
+    
+    % Start the first subplot
+    subplot_handle = subplot(3, 1, 1);
+    hold on;
+    % Plot the X errors
+    plot(time_axis, errors{i}.state_error(:,1), 'Color', 'm', 'LineWidth', 2);
+    % Plot the zero line
+    %plot(t, zero_line, 'b-', 'LineWidth','1');
+    refline_handle = refline(0,0);
+    set(refline_handle, 'LineStyle', '--', 'Color', 'k', 'LineWidth', 0.5);
+    %xlabel('Time (msec)');
+    ylabel('e_X (cm)');
+    % Only create a title for the first plot, that will serve for all the others too.
+    %title('Tracking Errors in X Y Z  \theta \gamma \psi');
+    title('   State Errors, Inverse Kinematics Test');
+    % Scale the plot. A good scale here is...
+    %ylim([-2.0 3.5]);
+    % Adjust by roughly the amount we scaled the disturbances: 1/6 of the
+    % length. Plus a small change to make the numbers prettier, about -(1/3)+0.05
+    %ylim([-0.1, 0.55]);
+    
+    % Make the legend
+    %nodisturblabel = sprintf('No Noise');
+    %disturblabel = sprintf('With Noise');
+    %legend_handle = legend(nodisturblabel, disturblabel, 'Location', 'North', 'Orientation', 'horizontal');
+
+    hold off;
+
+    % Plot the Y errors
+    subplot_handle = subplot(3,1,2);
+    hold on;
+    % Plot the X errors
+    plot(time_axis, errors{i}.state_error(:,2), 'Color', 'm', 'LineWidth', 2);
+    % Plot the zero line
+    %plot(t, zero_line, 'b-', 'LineWidth','1');
+    refline_handle = refline(0,0);
+    set(refline_handle, 'LineStyle', '--', 'Color', 'k', 'LineWidth', 0.5);
+    %legend('Vertebra 1 (Bottom)', 'Vertebra 2 (Middle)', 'Vertebra 3 (Top)');
+    %xlabel('Time (msec)');
+    ylabel('e_Y (cm)');
+    %title('Tracking Error in Y');
+    % Adjust by roughly the amount we scaled the disturbances: 1/6 of the
+    % length. Plus a small change to make the numbers prettier, about -(1/3)+0.05
+    %ylim([-0.2, (7/12)-0.1]); 
+    %ylim([-0.1, 0.55]);    
+    
+    hold off;
+    
+    % Plot the gamma errors
+    subplot_handle = subplot(3,1,3);
+    hold on;
+    plot(time_axis, errors{i}.state_error(:,3), 'Color', 'm', 'LineWidth', 2);
+    % Plot the zero line
+    %plot(t, zero_line, 'b-', 'LineWidth','1');
+    refline_handle = refline(0,0);
+    set(refline_handle, 'LineStyle', '--', 'Color', 'k', 'LineWidth', 0.5);
+    %legend('Vertebra 1 (Bottom)', 'Vertebra 2 (Middle)', 'Vertebra 3 (Top)');
+    %xlabel('Time (msec)');
+    ylabel('e_\gamma (deg)');
+    %title('Tracking Error in Y');
+    % Angles limits: maybe the same as in 3D?
+    %ylim([-5 1]);
+    % Move the plot very slightly to the left
+    % For these lower figures, move them upwards a bit more.
+    %P = get(subplot_handle,'Position')
+    %set(subplot_handle,'Position',[P(1)-0.06 P(2)+0.07 P(3)+0.01 P(4)-0.04])
+    
+    % Finally, a label in X at the bottom
+    xlabel('Time (sec)');
+
+    hold off;
 end
 
 
