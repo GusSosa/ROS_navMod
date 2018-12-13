@@ -110,139 +110,140 @@ for i=1:num_tests
     set(errfig,'PaperPosition',[1,1,5.8,3.5]);
     % Plot the data itself
     plot(errors{i}.com_cv(:,1), errors{i}.com_cv(:,2), 'b', 'LineWidth', 3);
-    plot(errors{i}.com_ik(:,1), errors{i}.com_ik(:,2), 'r', 'LineWidth', 3);
+    plot(errors{i}.com_ik_inframe(:,1), errors{i}.com_ik_inframe(:,2), 'r', 'LineWidth', 3);
     % Annotate the plot
     title('Spine Position Inverse Kinematics Test ');
     ylabel('Spine CoM, Y (cm)');
     xlabel('Spine CoM, X (cm)');
     legend('Test (Computer Vision)', 'Predicted State', 'Location', 'Best');
     % Set the limits:
-    %xlim([10 20]);
-    %ylim([11 23]);
+    xlim([10 20]);
+    ylim([11 23]);
     
-%     %% Get a set of aligned data. 
-%     % This is necessary so we can zero-order-hold the inverse kinematics
-%     % inputs, with the right timestamps and indices, for a time error 
-%     % analysis (subtraction!).
-%     
-%     % Let's do a small sampling rate,
-%     % like 0.1 sec. We don't want to do too small or else the sampling rate
-%     % is meaningless (the frames per sec on the CV is low.)
-%     % Data is in millisec, so 0.1 sec = 100.
-%     % That's actually pretty inaccurate still. Maybe 2hz. Looks better now.
-%     dt = 100;
-%     % start at the first index of the data, since we've already pulled out
-%     % the set of data we want (THIS WILL CHANGE LATER.)
-%     %starttime = errors{i}.timestamps_cv(1);
-%     % When the IK and CV data represents the same test, we can take the
-%     % first time index for the IK as the start of the computer vision.
-%     starttime = errors{i}.timestamps_ik(1);
-%     % For the data, we concatenate the center of mass and rotations.
-%     data_cv_foralignment = [errors{i}.com_cv, errors{i}.rot_cv];
-%     [aligned_timestamps, aligned_data] = align_cv_data(errors{i}.timestamps_cv, ...
-%         data_cv_foralignment, starttime, dt);
-%     % Save the aligned data in the result.
-%     errors{i}.aligned_timestamps_cv = aligned_timestamps;
-%     errors{i}.aligned_data_cv = aligned_data;
-%     
-%     % adjust all the timestamps so they're relative. This makes the math
-%     % easier.
-%     time_offset = errors{i}.timestamps_ik(1);
-%     errors{i}.aligned_timestamps_ik = errors{i}.timestamps_ik - time_offset;
-%     errors{i}.aligned_timestamps_cv = errors{i}.aligned_timestamps_cv - time_offset; 
-%     
-%     % Now, we can do the ZOH signal for the inverse kinematics.
-%     errors{i} = get_invkin_zoh(errors{i});
-%     
-%     % Finally, we should be able to just subtract to get the state error.
-%     errors{i}.state_error = errors{i}.aligned_data_cv - errors{i}.zoh;
-%     
-%     %% Make a plot of the errors. Adapted from Drew's script for the MPC
-%     % results of summer 2018.
-%     
-%     % A scaled x-axis, for timestamps. Make it in sec.
-%     time_axis = floor(errors{i}.aligned_timestamps_cv / 1000);
-% 
-%     % Create the handle for the overall figure
-%     % Also, use the OpenGL renderer so that symbols are formatted correctly.
-%     %errors_handle = figure('Renderer', 'opengl');
-%     errors_handle = figure;
-%     hold on;
-%     set(gca,'FontSize',fontsize);
-%     % This figure will have 3 smaller plots, so make it larger than my
-%     % usual window dimensions.
-%     set(errors_handle,'Position',[100,100,450,300]);
-%     
-%     % Start the first subplot
-%     subplot_handle = subplot(3, 1, 1);
-%     hold on;
-%     % Plot the X errors
-%     plot(time_axis, errors{i}.state_error(:,1), 'Color', 'm', 'LineWidth', 2);
-%     % Plot the zero line
-%     %plot(t, zero_line, 'b-', 'LineWidth','1');
-%     refline_handle = refline(0,0);
-%     set(refline_handle, 'LineStyle', '--', 'Color', 'k', 'LineWidth', 0.5);
-%     %xlabel('Time (msec)');
-%     ylabel('e_X (cm)');
-%     % Only create a title for the first plot, that will serve for all the others too.
-%     %title('Tracking Errors in X Y Z  \theta \gamma \psi');
-%     title('   State Errors, Inverse Kinematics Test');
-%     % Scale the plot. A good scale here is...
-%     %ylim([-2.0 3.5]);
-%     % Adjust by roughly the amount we scaled the disturbances: 1/6 of the
-%     % length. Plus a small change to make the numbers prettier, about -(1/3)+0.05
-%     %ylim([-0.1, 0.55]);
-%     
-%     % Make the legend
-%     %nodisturblabel = sprintf('No Noise');
-%     %disturblabel = sprintf('With Noise');
-%     %legend_handle = legend(nodisturblabel, disturblabel, 'Location', 'North', 'Orientation', 'horizontal');
-% 
-%     hold off;
-% 
-%     % Plot the Y errors
-%     subplot_handle = subplot(3,1,2);
-%     hold on;
-%     % Plot the X errors
-%     plot(time_axis, errors{i}.state_error(:,2), 'Color', 'm', 'LineWidth', 2);
-%     % Plot the zero line
-%     %plot(t, zero_line, 'b-', 'LineWidth','1');
-%     refline_handle = refline(0,0);
-%     set(refline_handle, 'LineStyle', '--', 'Color', 'k', 'LineWidth', 0.5);
-%     %legend('Vertebra 1 (Bottom)', 'Vertebra 2 (Middle)', 'Vertebra 3 (Top)');
-%     %xlabel('Time (msec)');
-%     ylabel('e_Y (cm)');
-%     %title('Tracking Error in Y');
-%     % Adjust by roughly the amount we scaled the disturbances: 1/6 of the
-%     % length. Plus a small change to make the numbers prettier, about -(1/3)+0.05
-%     %ylim([-0.2, (7/12)-0.1]); 
-%     %ylim([-0.1, 0.55]);    
-%     
-%     hold off;
-%     
-%     % Plot the gamma errors
-%     subplot_handle = subplot(3,1,3);
-%     hold on;
-%     plot(time_axis, errors{i}.state_error(:,3), 'Color', 'm', 'LineWidth', 2);
-%     % Plot the zero line
-%     %plot(t, zero_line, 'b-', 'LineWidth','1');
-%     refline_handle = refline(0,0);
-%     set(refline_handle, 'LineStyle', '--', 'Color', 'k', 'LineWidth', 0.5);
-%     %legend('Vertebra 1 (Bottom)', 'Vertebra 2 (Middle)', 'Vertebra 3 (Top)');
-%     %xlabel('Time (msec)');
-%     ylabel('e_\gamma (deg)');
-%     %title('Tracking Error in Y');
-%     % Angles limits: maybe the same as in 3D?
-%     %ylim([-5 1]);
-%     % Move the plot very slightly to the left
-%     % For these lower figures, move them upwards a bit more.
-%     %P = get(subplot_handle,'Position')
-%     %set(subplot_handle,'Position',[P(1)-0.06 P(2)+0.07 P(3)+0.01 P(4)-0.04])
-%     
-%     % Finally, a label in X at the bottom
-%     xlabel('Time (sec)');
-% 
-%     hold off;
+    %% Get a set of aligned data. 
+    % This is necessary so we can zero-order-hold the inverse kinematics
+    % inputs, with the right timestamps and indices, for a time error 
+    % analysis (subtraction!).
+    
+    % Let's do a small sampling rate,
+    % like 0.1 sec. We don't want to do too small or else the sampling rate
+    % is meaningless (the frames per sec on the CV is low.)
+    % Data is in millisec, so 0.1 sec = 100.
+    % That's actually pretty inaccurate still. Maybe 2hz. Looks better now.
+    dt = 100;
+    % start at the first index of the data, since we've already pulled out
+    % the set of data we want (THIS WILL CHANGE LATER.)
+    %starttime = errors{i}.timestamps_cv(1);
+    % When the IK and CV data represents the same test, we can take the
+    % first time index for the IK as the start of the computer vision.
+    starttime = errors{i}.timestamps_ik(1);
+    % For the data, we concatenate the center of mass and rotations.
+    data_cv_foralignment = [errors{i}.com_cv, errors{i}.rot_cv];
+    [aligned_timestamps, aligned_data] = align_cv_data(errors{i}.timestamps_cv, ...
+        data_cv_foralignment, starttime, dt);
+    % Save the aligned data in the result.
+    errors{i}.aligned_timestamps_cv = aligned_timestamps;
+    errors{i}.aligned_data_cv = aligned_data;
+    
+    % adjust all the timestamps so they're relative. This makes the math
+    % easier.
+    time_offset = errors{i}.timestamps_ik(1);
+    errors{i}.aligned_timestamps_ik = errors{i}.timestamps_ik - time_offset;
+    errors{i}.aligned_timestamps_cv = errors{i}.aligned_timestamps_cv - time_offset; 
+    
+    % Now, we can do the ZOH signal for the inverse kinematics.
+    errors{i} = get_invkin_zoh(errors{i});
+    
+    % Finally, we should be able to just subtract to get the state error.
+    errors{i}.state_error = errors{i}.aligned_data_cv - errors{i}.zoh;
+    
+    %% Make a plot of the errors. Adapted from Drew's script for the MPC
+    % results of summer 2018.
+    
+    % A scaled x-axis, for timestamps. Make it in sec.
+    time_axis = floor(errors{i}.aligned_timestamps_cv / 1000);
+
+    % Create the handle for the overall figure
+    % Also, use the OpenGL renderer so that symbols are formatted correctly.
+    %errors_handle = figure('Renderer', 'opengl');
+    errors_handle = figure;
+    hold on;
+    set(gca,'FontSize',fontsize);
+    % This figure will have 3 smaller plots, so make it larger than my
+    % usual window dimensions.
+    set(errors_handle,'Position',[100,100,500,350]);
+    %set(errfig,'Position',[100,100,500,350]);
+    %set(errfig,'PaperPosition',[1,1,5.8,3.5]);
+    
+    % Start the first subplot
+    subplot_handle = subplot(3, 1, 1);
+    hold on;
+    % Plot the X errors
+    plot(time_axis, errors{i}.state_error(:,1), 'Color', 'm', 'LineWidth', 2);
+    % Plot the zero line
+    %plot(t, zero_line, 'b-', 'LineWidth','1');
+    refline_handle = refline(0,0);
+    set(refline_handle, 'LineStyle', '--', 'Color', 'k', 'LineWidth', 0.5);
+    %xlabel('Time (msec)');
+    ylabel('X (cm)');
+    % Only create a title for the first plot, that will serve for all the others too.
+    %title('Tracking Errors in X Y Z  \theta \gamma \psi');
+    title('   State Errors, Inverse Kinematics Test');
+    set(gca,'FontSize',fontsize);
+    % Scale the plot. A good scale here is...
+    ylim([-0.6 0.6]);
+    
+    % Make the legend
+    %nodisturblabel = sprintf('No Noise');
+    %disturblabel = sprintf('With Noise');
+    %legend_handle = legend('Hardware Test  'Location', 'North', 'Orientation', 'horizontal');
+
+    hold off;
+
+    % Plot the Y errors
+    subplot_handle = subplot(3,1,2);
+    hold on;
+    % Plot the X errors
+    plot(time_axis, errors{i}.state_error(:,2), 'Color', 'm', 'LineWidth', 2);
+    % Plot the zero line
+    %plot(t, zero_line, 'b-', 'LineWidth','1');
+    refline_handle = refline(0,0);
+    set(refline_handle, 'LineStyle', '--', 'Color', 'k', 'LineWidth', 0.5);
+    %legend('Vertebra 1 (Bottom)', 'Vertebra 2 (Middle)', 'Vertebra 3 (Top)');
+    %xlabel('Time (msec)');
+    ylabel('Y (cm)');
+    %title('Tracking Error in Y');
+    % Adjust by roughly the amount we scaled the disturbances: 1/6 of the
+    % length. Plus a small change to make the numbers prettier, about -(1/3)+0.05
+    %ylim([-0.2, (7/12)-0.1]); 
+    ylim([-1.5, 1.5]);    
+    set(gca,'FontSize',fontsize);
+    
+    hold off;
+    
+    % Plot the gamma errors
+    subplot_handle = subplot(3,1,3);
+    hold on;
+    plot(time_axis, errors{i}.state_error(:,3), 'Color', 'm', 'LineWidth', 2);
+    % Plot the zero line
+    %plot(t, zero_line, 'b-', 'LineWidth','1');
+    refline_handle = refline(0,0);
+    set(refline_handle, 'LineStyle', '--', 'Color', 'k', 'LineWidth', 0.5);
+    %legend('Vertebra 1 (Bottom)', 'Vertebra 2 (Middle)', 'Vertebra 3 (Top)');
+    %xlabel('Time (msec)');
+    ylabel('\theta (deg)');
+    %title('Tracking Error in Y');
+    ylim([-6 6]);
+    % Move the plot very slightly to the left
+    % For these lower figures, move them upwards a bit more.
+    %P = get(subplot_handle,'Position')
+    %set(subplot_handle,'Position',[P(1)-0.06 P(2)+0.07 P(3)+0.01 P(4)-0.04])
+    
+    % Finally, a label in X at the bottom
+    xlabel('Time (sec)');
+    set(gca,'FontSize',fontsize);
+
+    hold off;
 end
 
 
