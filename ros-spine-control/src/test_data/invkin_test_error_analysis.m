@@ -118,7 +118,12 @@ for i=1:num_tests
     xlim([10 20]);
     ylim([11 23]);
     
-    % A test. Get a set of aligned data. Let's do a small sampling rate,
+    % A test. Get a set of aligned data. 
+    % This is necessary so we can zero-order-hold the inverse kinematics
+    % inputs, with the right timestamps and indices, for a time error 
+    % analysis (subtraction!).
+    
+    % Let's do a small sampling rate,
     % like 0.1 sec. We don't want to do too small or else the sampling rate
     % is meaningless (the frames per sec on the CV is low.)
     % Data is in millisec, so 0.1 sec = 100.
@@ -126,7 +131,10 @@ for i=1:num_tests
     dt = 500;
     % start at the first index of the data, since we've already pulled out
     % the set of data we want (THIS WILL CHANGE LATER.)
-    starttime = errors{i}.timestamps_cv(1);
+    %starttime = errors{i}.timestamps_cv(1);
+    % When the IK and CV data represents the same test, we can take the
+    % first time index for the IK as the start of the computer vision.
+    starttime = errors{i}.timestamps_ik(1);
     % For the data, we concatenate the center of mass and rotations.
     data_cv_foralignment = [errors{i}.com_cv, errors{i}.rot_cv];
     [aligned_timestamps, aligned_data] = align_cv_data(errors{i}.timestamps_cv, ...
@@ -134,6 +142,19 @@ for i=1:num_tests
     % Save the aligned data in the result.
     errors{i}.aligned_timestamps_cv = aligned_timestamps;
     errors{i}.aligned_data_cv = aligned_data;
+    
+    % adjust all the timestamps so they're relative. This makes the math
+    % easier.
+    time_offset = errors{i}.timestamps_ik(1);
+    errors{i}.aligned_timestamps_ik = errors{i}.timestamps_ik - time_offset;
+    errors{i}.aligned_timestamps_cv = errors{i}.aligned_timestamps_cv - time_offset; 
+    
+    % Now, we can do the ZOH signal for the inverse kinematics.
+    errors{i} = get_invkin_zoh(errors{i});
+    
+    % Finally, we should be able to just subtract to get the state error.
+    % TO-DO: use inframe
+    errors{i}.state_error = errors{i}.aligned_data_cv - errors{i}.zoh;
 end
 
 

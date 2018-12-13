@@ -47,7 +47,8 @@ test_structs = {};
 % Test 1 - corrected homography
 struct1.datetime_cv = '2018-12-12_192239';
 struct1.datetime_invkin = '2018-12-12_192238';
-struct1.start_row_cv = 102;
+%struct1.start_row_cv = 102;
+struct1.start_row_cv = 3;
 struct1.end_row_cv = -1;
 % note that the rows for IK are pre-specified: just 2 to end.
 % store it
