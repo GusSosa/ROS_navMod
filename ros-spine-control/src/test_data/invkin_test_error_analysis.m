@@ -10,8 +10,9 @@ function [ errors ] = invkin_test_error_analysis(test_structs, path_to_data_fold
 %   test_structs = a cell array, where each element has a struct in it that
 %       has fields per-test. Each struct is for one test. Fields are:
 %
-%           datetime = date/timestamp of the .csv file. Needs to be
-%               Y-M-D_HMS. Should be a string.
+%           datetime_cv = date/timestamp of the .csv file for the comp vis
+%               data. Needs to be Y-M-D_HMS. Should be a string.
+%           datetime_invkin = same, but for the IK log file.
 %           start_row = The row within the data file to start parsing in
 %               the data. Used because tests don't always start when the
 %               computer vision system starts collecting data.
@@ -35,47 +36,87 @@ num_tests = size(test_structs, 2);
 
 for i=1:num_tests
     % Pull out the parameters for this test.
-    datetime = test_structs{i}.datetime;
-    start_row = test_structs{i}.start_row;
-    end_row = test_structs{i}.end_row;
+    datetime_cv = test_structs{i}.datetime_cv;
+    datetime_invkin = test_structs{i}.datetime_invkin;
+    start_row_cv = test_structs{i}.start_row_cv;
+    end_row_cv = test_structs{i}.end_row_cv;
     
-    % Create the filename for this set of data.
+    % Create the filename for this set of computer vision data.
     % The file name format, as output by cv_datalogger, is
-    file_path = strcat(path_to_data_folder, '/cv_datalogger_', ...
-        datetime, '.csv');
+    file_path_cv = strcat(path_to_data_folder, '/cv_datalogger_', ...
+        datetime_cv, '.csv');
+    % and for the invkin data,
+    file_path_invkin = strcat(path_to_data_folder, '/invkin_datalogger_', ...
+        datetime_invkin, '.csv');
     
     % Read in the data. The cv_datalogger data starts at the 3rd row,
     % and has four columns.
     % MATLAB INDEXES FROM 0 HERE!!!
-    data_i = [];
-    if end_row == -1
+    data_cv_i = [];
+    if end_row_cv == -1
         % Read the whole thing
-        data_i = csvread(file_path, start_row, 0);
+        data_cv_i = csvread(file_path_cv, start_row_cv, 0);
         % The timestamps are the first column
-        errors{i}.timestamps = data_i(:,1);
+        errors{i}.timestamps_cv = data_cv_i(:,1);
         % The CoM is columns 2 and 3
-        errors{i}.com = data_i(:,2:3);
+        errors{i}.com_cv = data_cv_i(:,2:3);
         % rotations are last column
-        errors{i}.rot = data_i(:,4);
+        errors{i}.rot_cv = data_cv_i(:,4);
         %errors{i}.data = data_i;
     else
         % Only read up to the specified row.
         % 4 columns when indexed from 0 is 3.
         % csvread(filename, R, C, [R1 C1 R2 C2])
-        data_i = csvread(file_path, start_row, 0, [startrow 0 endrow 3]);
+        data_cv_i = csvread(file_path_cv, start_row_cv, 0, [start_row_cv 0 end_row_cv 3]);
         % The timestamps are the first column
-        errors{i}.timestamps = data_i(:,1);
+        errors{i}.timestamps_cv = data_cv_i(:, 1);
         % The CoM is columns 2 and 3
-        errors{i}.com = data_i(:,2:3);
+        errors{i}.com_cv = data_cv_i(:, 2:3);
         % rotations are last column
-        errors{i}.rot = data_i(:,4);
+        errors{i}.rot_cv = data_cv_i(:, 4);
         %errors{i}.data = data_i;
     end
     
+    % The inverse kinematics one is easier, since the rows are known.
+    % Starts at third row (indexed from zero is 2.)
+    data_ik_i = csvread(file_path_invkin, 2, 0);
+    % Pick out the data similar to the cv.
+    % We're interested in body 2, which is indices 5:7.
+    errors{i}.timestamps_ik = data_ik_i(:, 1);
+    errors{i}.com_ik = data_ik_i(:, 5:6);
+    errors{i}.rot_ik = data_ik_i(:, 7);
+    
+    % Next, convert the state information between the two frames. 
+    % The origin of the MATLAB frame is hard to get in the computer vision
+    % frame - lots of calculations from where we put the grid - so here's
+    % an estimate within a few mm for now.
+    squares_x = 5;
+    squares_y = 8.2;
+    % Each square is 2 cm so the offsets are
+    offset_x = squares_x * 2;
+    offset_y = squares_y * 2;
+    % In cm, then, 
+    errors{i}.com_ik_inframe = errors{i}.com_ik * 100 + [offset_x, offset_y];
+    
     % A plot of the data.
-    figure;
+    fontsize = 14;
+    errfig = figure;
     hold on;
-    plot(errors{i}.com(:,1), errors{i}.com(:,2), '.');
+    % Set up the window
+    set(gca, 'FontSize', fontsize);
+    set(errfig,'Position',[100,100,500,350]);
+    set(errfig,'PaperPosition',[1,1,5.8,3.5]);
+    % Plot the data itself
+    plot(errors{i}.com_cv(:,1), errors{i}.com_cv(:,2), 'b', 'LineWidth', 3);
+    plot(errors{i}.com_ik_inframe(:,1), errors{i}.com_ik_inframe(:,2), 'r', 'LineWidth', 3);
+    % Annotate the plot
+    title('Spine Position Inverse Kinematics Test ');
+    ylabel('Spine CoM, Y (cm)');
+    xlabel('Spine CoM, X (cm)');
+    legend('Test (Computer Vision)', 'Predicted State', 'Location', 'Best');
+    % Set the limits:
+    xlim([10 20]);
+    ylim([11 23]);
 
 end
 
