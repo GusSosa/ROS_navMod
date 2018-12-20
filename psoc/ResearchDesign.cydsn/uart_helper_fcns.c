@@ -81,12 +81,7 @@ CY_ISR( Interrupt_Handler_UART_Receive ){
 }
 
 /**
- * The command parser itself. Currently supports the following:
- * e = enable the PWM
- * x = disable the PWM
- * u float float float float = set the current control input (write to the global variable.)
- * q = query. Return the current control input that's stored in memory.
- * s = hard stop. "The Big Red Button."
+ * The command parser itself. See the welcome message for up-to-date list of commands.
  */
 void UART_Command_Parser() {
     // First, get the command, and switch on it.
@@ -99,58 +94,169 @@ void UART_Command_Parser() {
     
     // switch on the command.
     switch(cmd) {
-        case 'x':
-            // Added functionality: if the user types an x, then the PWM stops.
-            sprintf(transmit_buffer, "Stopping PWM.\r\n");
-            //PWM_Servo_Stop();
-            break;
-            
-        case 'e':
-            // Similarly, type e to enable.
-            sprintf(transmit_buffer, "Enabling PWM.\r\n");
-            //PWM_Servo_Start();
-            break;
             
         case 'u':
             // The most important one! 
             // The floats can be put directly into the global variable.
-            num_filled = sscanf(receive_buffer, "u %f %f %f %f", &current_control[0],
-                   &current_control[1], &current_control[2], &current_control[3]);
+//            num_filled = sscanf(receive_buffer, "u %f %f %f %f", &current_control[0],
+//                   &current_control[1], &current_control[2], &current_control[3]);
+            // we'll originally store the cm value.
+            num_filled = sscanf(receive_buffer, "u %f %f %f %f", &control_in_cm[0],
+                   &control_in_cm[1], &control_in_cm[2], &control_in_cm[3]);
+            
             // Print out a message according to how much was parsed.
             if( num_filled == 4 ){
-                // Return the resulting data that was stored.
-                sprintf(transmit_buffer, "Stored an input of %f, %f, %f, %f\r\n", current_control[0],
+                // Return the resulting data that was stored. First, in original input units:
+                //sprintf(transmit_buffer, "Stored an input, in cm, of %f, %f, %f, %f\r\n", current_control[0],
+                //    current_control[1], current_control[2], current_control[3]);
+                // Calculate the control inputs in terms of encoder ticks.
+                // Assignment to an int automatically casts the float.
+                //float radius = 1.063087;
+                //float ticks_per_rev_man = 1185.36;
+                float ticks_per_rev_qd = 4741.44;
+                //float radius = 0.5;
+                // casting occurs automatically here.
+                // TO-DO: replace with the #define'd constants. More efficient.
+                // We use the number of ticks according to either our manual counting or
+                // the quad dec component's counting.
+                current_control[0] = (ticks_per_rev_qd*control_in_cm[0])/(2*3.1415*RADIUS);
+                current_control[1] = (ticks_per_rev_qd*control_in_cm[1])/(2*3.1415*RADIUS);
+                current_control[2] = (ticks_per_rev_qd*control_in_cm[2])/(2*3.1415*RADIUS);
+                current_control[3] = (ticks_per_rev_qd*control_in_cm[3])/(2*3.1415*RADIUS);
+                sprintf(transmit_buffer, "Stored an input, converted to encoder ticks, of %i, %i, %i, %i\r\n", current_control[0],
                     current_control[1], current_control[2], current_control[3]);
+                tensioning = 0;
                 controller_status = 1;
                 first_loop_1 = 1;
                 first_loop_2 = 1;
+                first_loop_3 = 1;
+                first_loop_4 = 1;
+                motor_1 = 1;
+                motor_2 = 1;
+                motor_3 = 1;
+                motor_4 = 1;
+                print = 1;
             }
             else {
                 // did not receive exactly 4 control inputs.
                 sprintf(transmit_buffer, "Error!! You typed %s, which gave %i control inputs when 4 were expected.\r\n", receive_buffer, num_filled);
             }
+            break;
             
-
-       
+        // query the encoder ticks (current positions.)
+        case 'e':
+            // values are held in "count."
+            sprintf(transmit_buffer, "Current encoder tick counts are %i, %i, %i, %i\r\n", QuadDec_Motor1_GetCounter(),
+               QuadDec_Motor2_GetCounter(), QuadDec_Motor3_GetCounter(), QuadDec_Motor4_GetCounter());
+            break;
+            
+        // query current error signal (control input - encoder ticks.)
+        case 'r':
+            // values held in "error."
+            sprintf(transmit_buffer, "Current error signals are:\r\n P = {%i, %i, %i, %i}, \r\n I = {%i, %i, %i, %i}, \r\n D = {%i, %i, %i, %i}\r\n", error[0],
+                error[1], error[2], error[3], integral_error[0], integral_error[1], integral_error[2], 
+                integral_error[3], deriv_error[0], deriv_error[1], deriv_error[2], deriv_error[3]);
+            break;
+            
+        // Tensioning command for small adjustments / calibration.
+        // Now uses the macros from data_storage.h
+        case 't':    
+            sscanf(receive_buffer, "t %f", &tension_control);
+            if (tension_control == 1) {
+                first_loop_1 = 1;
+                motor_1 = 1;
+                current_control[0] = current_control[0] + T_TICKS_QD;
+            }
+            else if (tension_control == -1) {
+                first_loop_1 = 1;
+                motor_1 = 1;                
+                current_control[0] = current_control[0] - T_TICKS_QD;
+            }
+            else if (tension_control == 2) {
+                first_loop_2 = 1;
+                motor_2 = 1;
+                current_control[1] = current_control[1] + T_TICKS_QD;
+            }
+            else if (tension_control == -2) {
+                first_loop_2 = 1;
+                motor_2 = 1;
+                current_control[1] = current_control[1] - T_TICKS_QD;
+            }         
+            else if (tension_control == 3) {
+                first_loop_3 = 1;
+                motor_3 = 1;
+                current_control[2] = current_control[2] + T_TICKS_QD;
+            }
+            else if (tension_control == -3) {
+                first_loop_3 = 1;
+                motor_3 = 1;                
+                current_control[2] = current_control[2] - T_TICKS_QD;
+            }
+            else if (tension_control == 4) {
+                first_loop_4 = 1;
+                motor_4 = 1;
+                current_control[3] = current_control[3] + T_TICKS_QD;
+            }
+            else if (tension_control == -4) {
+                first_loop_4 = 1;
+                motor_4 = 1;                
+                current_control[3] = current_control[3] - T_TICKS_QD;
+            }
+            //tensioning = 1;
+            controller_status = 1;
+            sprintf(transmit_buffer, "Adjusted tensions. Control inputs are now %i, %i, %i, %i\r\n", current_control[0],
+                    current_control[1], current_control[2], current_control[3]);
+            break;
+            
+        // E-stop. "disable."
+        // This function (a) turns off the PWM, (b) resets the control, (c) resets the encoder count.
+        case 'd':
+            PWM_1_WriteCompare(0);
+            PWM_2_WriteCompare(0);
+            PWM_3_WriteCompare(0);
+            PWM_4_WriteCompare(0);
+            PWM_1_Stop();
+            PWM_2_Stop();
+            PWM_3_Stop();
+            PWM_4_Stop();
+            
+            current_control[0] = 0;
+            current_control[1] = 0;
+            current_control[2] = 0;
+            current_control[3] = 0;
+            count_3 = 0;
+            count_4 = 0;
+            
+            // reset the quadrature encoder counts
+            QuadDec_Motor1_SetCounter(0);
+            QuadDec_Motor2_SetCounter(0);
+            QuadDec_Motor3_SetCounter(0);
+            QuadDec_Motor4_SetCounter(0);
+            
+            // also, reset all the error terms.
+            error[0] = 0;
+            error[1] = 0;
+            error[2] = 0;
+            error[3] = 0;
+            integral_error[0] = 0;
+            integral_error[1] = 0;
+            integral_error[2] = 0;
+            integral_error[3] = 0;
+            
+            sprintf(transmit_buffer, "Controls and encoder counts reset, PWM now of.\r\n");
             break;
             
         case 'q':
             // query the state of the store control commands.
-            sprintf(transmit_buffer, "Current control inputs are %f, %f, %f, %f\r\n", current_control[0],
+            sprintf(transmit_buffer, "Current control inputs are (in encoder ticks): %i, %i, %i, %i\r\n", current_control[0],
                     current_control[1], current_control[2], current_control[3]);
-            break;
-            
-        case 's':
-            // hard shutdown, kill everything. "The Big Red Button."
-            // To-do: implement this
-            sprintf(transmit_buffer, "Hard Stop. TO-DO: IMPLEMENT THIS.\r\n");
             break;
             
         case 'w':
             // echo back the welcome message.
             UART_Welcome_Message();
             // and push an empty string to the transmit buffer.
-            sprintf(transmit_buffer, "");
+            sprintf(transmit_buffer, "\r\n");
             break;
             
         case 'c':
@@ -160,6 +266,15 @@ void UART_Command_Parser() {
             UART_ClearTxBuffer();
             // still need to specify some message to send back to the terminal.
             sprintf(transmit_buffer, "Cleared RX and TX buffers for the UART on the PSoC.\r\n");
+            break;
+        
+        case 'n':
+            // enaBle the PWMs, after having pressed d to turn them off.
+            PWM_1_Enable();
+            PWM_2_Enable();
+            PWM_3_Enable();
+            PWM_4_Enable();
+            sprintf(transmit_buffer, "PWMs re-enabled.\r\n");
             break;
             
         default:
@@ -183,13 +298,19 @@ void UART_Welcome_Message(){
     UART_PutString("Copyright 2018 Berkeley Emergent Space Tensegrities Lab.\r\n");
     UART_PutString("Usage: send strings of the form (char) (optional_args). Currently supported:\r\n");
     UART_PutString("(NOTE: THESE MUST BE FOLLOWED EXACTLY, with exact spacing.)\r\n\n");
-    UART_PutString("e = enable PWM\r\n");
-    UART_PutString("x = disable PWM\r\n");
-    UART_PutString("q = query currently-stored control input\r\n");
-    UART_PutString("s = hard stop. The Big Red Button. (hopefully.)\r\n");
-    UART_PutString("w = echo back this welcome message\r\n");
-    UART_PutString("c = clear all UART tx/rx buffers on the PSoC \r\n");
-    UART_PutString("u float float float float = assign control input\r\n\n");
+    UART_PutString("q = Query currently-stored control input\r\n");
+    UART_PutString("d = Disable / emergency stop. The Big Red Button. Resets all counts (encoder, control.)\r\n");
+    UART_PutString("w = echo back this Welcome message\r\n");
+    UART_PutString("c = Clear all UART tx/rx buffers on the PSoC \r\n");
+    UART_PutString("u float float float float = assign U, control input\r\n");
+    UART_PutString("t{-}int = Tensioning for calibration. Small steps in each direction.\r\n");
+    UART_PutString("              E.g. t-4 = motor 4, loosen.\r\n");
+    UART_PutString("n = eNable all the PWMs for the motors (useful after d.)\r\n");
+    UART_PutString("e = query Encoder ticks (current motor positions.)\r\n");
+    UART_PutString("r = query eRror signal, control - encoder ticks.\r\n\n");
+    UART_PutString("Recommended use pattern:\r\n");
+    UART_PutString("c to reset buffer, u 0 0 0 0 to loosen the cables, then pin the vertebra in place,\r\n");
+    UART_PutString("t to tension appropriately, d to set the zero point, then finally send u commands.\r\n\n");
     //UART_PutString("Remember to set your terminal's newline to LF or automatic detection. (TeraTerm: Setup -> Terminal -> New-line).\n\n");
 }
 

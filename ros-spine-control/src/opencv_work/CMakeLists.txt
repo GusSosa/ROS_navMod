@@ -49,12 +49,11 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * uncomment the generate_messages entry below
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
-## Generate messages in the 'msg' folder
-# add_message_files(
-#	FILES
-#   Message1.msg
-#   Message2.msg
-#)
+# Generate messages in the 'msg' folder
+add_message_files(
+	 FILES
+   SpineState.msg
+)
 
 ## Generate services in the 'srv' folder
 ## On 2018-12-4, Drew added the custom service for images as per the lab4_cam example
@@ -76,6 +75,7 @@ add_service_files(
 generate_messages(
    DEPENDENCIES
    sensor_msgs
+   std_msgs
 )
 
 ################################################
@@ -110,7 +110,7 @@ generate_messages(
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES opencv_work
-#  CATKIN_DEPENDS roscpp rospy std_msgs
+  CATKIN_DEPENDS roscpp rospy std_msgs message_runtime
 #  DEPENDS system_lib
 )
 
