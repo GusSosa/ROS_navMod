@@ -49,6 +49,7 @@ def talker():
                 pt1true = np.dot(Q, pt1h)[0:2, :]
                 pt2true = np.dot(Q, pt2h)[0:2, :]
                 # true_com = (np.dot(np.linalg.inv(H), pix_com_hom))[0:2, :]
+
                 # calculate angle of rotation of vertebrae
                 theta = tracker_angle(np.transpose(pt1true), np.transpose(pt2true))
                 # print(theta)
@@ -63,7 +64,7 @@ def talker():
 
             # if we are using a webcam, release the pointer
             if not args.get("video", False):
-                vs.stop()
+                vs.release()
                 print('[END OF TRACKING]')
 
             # otherwise, release the file pointer

@@ -21,7 +21,7 @@ import calculate_homography
 TOT_H_CLICKS = 4
 
 # Set desired frame width in pixels
-PIX_W = 1500
+PIX_W = 1750
 
 
 def tracker_init():
@@ -48,6 +48,32 @@ def tracker_init():
         "mosse": cv2.TrackerMOSSE_create
     }
 
+    # Setup SimpleBlobDetector parameters and set desired
+    # blob properties
+    params = cv2.SimpleBlobDetector_Params()
+    # Change thresholds
+    params.filterByColor = False
+    params.minThreshold = 10
+    params.maxThreshold = 200
+    # Filter by Area.
+    params.filterByArea = False
+    params.minArea = 1500
+    # Filter by Circularity
+    params.filterByCircularity = True
+    params.minCircularity = 0.95
+    # Filter by Convexity
+    params.filterByConvexity = True
+    params.minConvexity = 0.95
+    # Filter by Inertia
+    params.filterByInertia = True
+    params.minInertiaRatio = 0.95
+    # Create a detector with the parameters
+    ver = (cv2.__version__).split('.')
+    if int(ver[0]) < 3:
+        detector = cv2.SimpleBlobDetector(params)
+    else:
+        detector = cv2.SimpleBlobDetector_create(params)
+
     # initialize the bounding box coordinates of the object we are going
     # to track, and scale object
     trackers = cv2.MultiTracker_create()
@@ -57,79 +83,84 @@ def tracker_init():
     # to use PC webcam, change src=0
     # to use connected USB camera, change src=1 or src=2...
     print("[INFO] starting video stream...")
-    vs = VideoStream(src=1).start()
+    vs = cv2.VideoCapture(1)
+
+    # test
+    des_fps = 60
+    vs.set(cv2.CAP_PROP_FPS, des_fps)
+
     time.sleep(0.5)
 
     # initialize the FPS throughput estimator
     fps = FPS().start()
 
-    # Get the homography for this run of the tracker.
-    print("[INFO] Now calculating the homography.")
-    # We'll store the clicked points for the homography in this array:
-    h_pts = []
-    # First, create a callback for mouse clicks. (Adapted from EE206A Lab 4)
+    # # Get the homography for this run of the tracker.
+    # print("[INFO] Now calculating the homography.")
+    # # We'll store the clicked points for the homography in this array:
+    # h_pts = []
+    # # First, create a callback for mouse clicks. (Adapted from EE206A Lab 4)
 
-    def on_mouse_click(event, x, y, flag, param):
-        # we'll only capture four clicks.
-        if len(h_pts) < TOT_H_CLICKS:
-            if(event == cv2.EVENT_LBUTTONUP):
-                point = (x, y)
-                print "Point Captured: " + str(point)
-                h_pts.append(point)
+    # def on_mouse_click(event, x, y, flag, param):
+    #     # we'll only capture four clicks.
+    #     if len(h_pts) < TOT_H_CLICKS:
+    #         if(event == cv2.EVENT_LBUTTONUP):
+    #             point = (x, y)
+    #             print "Point Captured: " + str(point)
+    #             h_pts.append(point)
 
-    # Get the positions of the clicks.
-    # We want to wait until the user is ready to start.
-    # A nifty way to do so is to have them type something into the terminal, then discard what was typed.
-    raw_input("Please move out of the frame, then press enter to capture the frame that will be used for the homography.")
-    print("Click four times to get the points for the homography.")
-    # Next, get the four clicks. Read this frame:
-    # grab the current frame, then handle if we are using a
-    # VideoStream or VideoCapture object
-    frame = vs.read()
-    frame = frame[1] if args.get("video", False) else frame
+    # # Get the positions of the clicks.
+    # # We want to wait until the user is ready to start.
+    # # A nifty way to do so is to have them type something into the terminal, then discard what was typed.
+    # raw_input("Please move out of the frame, then press enter to capture the frame that will be used for the homography.")
+    # print("Click four times to get the points for the homography.")
+    # # Next, get the four clicks. Read this frame:
+    # # grab the current frame, then handle if we are using a
+    # # VideoStream or VideoCapture object
+    # frame = vs.read()[1]
+    # # frame = frame[1] if args.get("video", False) else frame
 
-    # resize and show the newly-captured frame
-    frame = imutils.resize(frame, width=PIX_W)
-    cv2.imshow("Frame", frame)
+    # # resize and show the newly-captured frame
+    # # frame = imutils.resize(frame, width=PIX_W)
+    # cv2.imshow("Frame", frame)
 
-    # Tell OpenCV that it should call 'on_mouse_click' when the user
-    # clicks the window. This will add clicked points to our list
-    cv2.setMouseCallback("Frame", on_mouse_click, param=1)
-    # Finally, loop until we've got enough clicks. Just a blocking wait.
-    while len(h_pts) < TOT_H_CLICKS:
-        if rospy.is_shutdown():
-            raise KeyboardInterrupt
-        # just block
-        cv2.waitKey(10)
-    # We should now have four elements in the h_pts array now.
-    print("Captured points for the homography:")
-    print(h_pts)
-    # Convert the Python list of points to a NumPy array of the form
-    #   | u1 u2 u3 u4 |
-    #   | v1 v2 v3 v4 |
-    uv = np.array(h_pts).T
+    # # Tell OpenCV that it should call 'on_mouse_click' when the user
+    # # clicks the window. This will add clicked points to our list
+    # cv2.setMouseCallback("Frame", on_mouse_click, param=1)
+    # # Finally, loop until we've got enough clicks. Just a blocking wait.
+    # while len(h_pts) < TOT_H_CLICKS:
+    #     if rospy.is_shutdown():
+    #         raise KeyboardInterrupt
+    #     # just block
+    #     cv2.waitKey(10)
+    # # We should now have four elements in the h_pts array now.
+    # print("Captured points for the homography:")
+    # print(h_pts)
+    # # Convert the Python list of points to a NumPy array of the form
+    # #   | u1 u2 u3 u4 |
+    # #   | v1 v2 v3 v4 |
+    # uv = np.array(h_pts).T
 
-    # Specify the points in the global frame, i.e. the frame of the vertebra.
-    # Assume the points go (bottom left, top left, top right, bottom right)
-    # and that the origin is at the bottom left.
-    global_pts = np.ndarray((4, 2))
-    # On 2018-12-5, the blue tape on the test setup was 16 squares of 2cm each,
-    # so that's 32 cm along each edge.
-    edge = 32
-    # the coordinates are then,
-    # for points 0 to 4 in the world frame,
-    global_pts[0, :] = [0, 0]
-    global_pts[1, :] = [0, edge]
-    global_pts[2, :] = [edge, edge]
-    global_pts[3, :] = [edge, 0]
+    # # Specify the points in the global frame, i.e. the frame of the vertebra.
+    # # Assume the points go (bottom left, top left, top right, bottom right)
+    # # and that the origin is at the bottom left.
+    # global_pts = np.ndarray((4, 2))
+    # # On 2018-12-5, the blue tape on the test setup was 16 squares of 2cm each,
+    # # so that's 32 cm along each edge.
+    # edge = 32
+    # # the coordinates are then,
+    # # for points 0 to 4 in the world frame,
+    # global_pts[0, :] = [0, 0]
+    # global_pts[1, :] = [0, edge]
+    # global_pts[2, :] = [edge, edge]
+    # global_pts[3, :] = [edge, 0]
 
-    # and can now call the function itself.
-    # as of 2018-12-5, uv is 2x4 but global_pts is 4x2. STANDARDIZE THIS.
-    H = calculate_homography.calc_H(uv, global_pts)
-    print("Calculated homography is:")
-    print(H)
+    # # and can now call the function itself.
+    # # as of 2018-12-5, uv is 2x4 but global_pts is 4x2. STANDARDIZE THIS.
+    # H = calculate_homography.calc_H(uv, global_pts)
+    # print("Calculated homography is:")
+    # print(H)
 
-    # close the current window before proceeding.
+    # # close the current window before proceeding.
     # cv2.destroyWindow("Frame")
 
     # Testing:
@@ -146,8 +177,8 @@ def tracker_init():
 
         # grab the current frame, then handle if we are using a
         # VideoStream or VideoCapture object
-        frame = vs.read()
-        frame = frame[1] if args.get("video", False) else frame
+        frame = vs.read()[1]
+        # frame = frame[1] if args.get("video", False) else frame
 
         # update the FPS counter
         fps.update()
@@ -173,11 +204,21 @@ def tracker_init():
         cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF
 
+        # Detect blobs.
+        keypoints = detector.detect(frame)
+
+        # Draw detected blobs as red circles.
+        # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures the size of the circle corresponds to the size of blob
+        im_with_keypoints = cv2.drawKeypoints(frame, keypoints, np.array([]), (0, 0, 255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+
+        # Show keypoints
+        cv2.imshow("Keypoints", im_with_keypoints)
+
         # if the "q" key is pressed, quit the program
         if key == ord("q"):
 
             # release webcam image
-            vs.stop()
+            vs.release()
             print('[END OF TRACKING]')
 
             # close all windows and end program
@@ -228,8 +269,8 @@ def tracker_main(trackers, args, pix_com, vs, fps):
 
     # grab the current frame, then handle if we are using a
     # VideoStream or VideoCapture object
-    frame = vs.read()
-    frame = frame[1] if args.get("video", False) else frame
+    frame = vs.read()[1]
+    # frame = frame[1] if args.get("video", False) else frame
 
     # resize the frame (so we can process it faster) and grab the
     # frame dimensions

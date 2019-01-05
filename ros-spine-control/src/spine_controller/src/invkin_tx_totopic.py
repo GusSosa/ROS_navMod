@@ -51,7 +51,7 @@ def tx_to_topic(file_name):
 
     # Create a timer object that will sleep long enough to result in
     # a reasonable publishing rate
-    r = rospy.Rate(1)  # hz
+    r = rospy.Rate(0.5)  # hz
     # We'll keep track of rows: we only want to publish until the end of the CSV file.
     # max timestep is number of rows.
     max_timestep = invkin_data.shape[0]
