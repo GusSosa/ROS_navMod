@@ -20,6 +20,8 @@ import numpy as np
 # Seems that arrays are in the *MultiArray messages.
 # We don't need 64 bits because the invkin output is only to a few decimal places
 from std_msgs.msg import Float32MultiArray
+# Now, we've got our own message type.
+from spine_controller.msg import InvkinControlCommand
 
 # The primary helper function here opens the csv file,
 # stores the results in a numpy array, and publishes rows of that array
@@ -35,7 +37,8 @@ def tx_to_topic(file_name):
     rospy.init_node('invkin_tx_commands', anonymous=False)
     # We need a publisher. Note we're using the numpy message type, wrapping
     # around the standard message type
-    pub = rospy.Publisher('invkin_tx_commands', numpy_msg(Float32MultiArray), queue_size=10)
+    #pub = rospy.Publisher('invkin_tx_commands', numpy_msg(Float32MultiArray), queue_size=10)
+    pub = rospy.Publisher('invkin_tx_commands', InvkinControlCommand, queue_size=10)
     # Then, read in the csv file.
     # The 3rd row (counting from 0) contains the parameters for this run, and is
     # of mixed type: int, string, int, int, int, string
@@ -44,10 +47,21 @@ def tx_to_topic(file_name):
                                   skip_header=3, max_rows=1)
     print("Using an inverse kinematics file with the parameters:")
     print(invkin_header)
+    # We need to now pick out the number of cables. That's the 4th column
+    # on the csv file. Numpy was giving me some trouble but turning the array into
+    # a list seemed to help.
+    #print(invkin_header.tolist()[0])
+    s = invkin_header.tolist()[3]
     # Then, read the data itself. Starts two rows down from header.
-    invkin_data = np.genfromtxt(file_name, dtype=None, delimiter=",",
+    control_data = np.genfromtxt(file_name, dtype=float, delimiter=",",
                                 skip_header=5)
+    # Split the data into its two parts: 0:s-1 == invkin, remainder == states.
+    #print(control_data)
+    invkin_data = control_data[:, 0:s]
+    # this is numpy notation for MATLAB equivalent control_data(:, s:end)
+    state_data = control_data[:, s:]
     # print(invkin_data.shape)
+    #print(state_data)
 
     # Create a timer object that will sleep long enough to result in
     # a reasonable publishing rate
@@ -65,15 +79,17 @@ def tx_to_topic(file_name):
     # but also need to catch shutdown signals.
     while (current_timestep < max_timestep) and not rospy.is_shutdown():
         # Create the message itself
-        to_publish = Float32MultiArray()
+        #to_publish = Float32MultiArray()
+        to_publish = InvkinControlCommand(invkin_control = invkin_data[current_timestep, :], \
+        	invkin_ref_state = state_data[current_timestep, :])
         # Put in the numpy array
         #to_publish.data = np.array([0.5, 0.5, 0.5, 0.5])
-        to_publish.data = invkin_data[current_timestep, :]
+        #to_publish.data = invkin_data[current_timestep, :]
         # Publish the current_timestep-th message
         pub.publish(to_publish)
         # Echo to the terminal
         print("Timestep " + str(current_timestep) + ", publishing:")
-        print(to_publish.data)
+        print(to_publish.invkin_control)
         # increment the counter
         current_timestep += 1
         # sleep until the next output

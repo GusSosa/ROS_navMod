@@ -81,12 +81,7 @@ CY_ISR( Interrupt_Handler_UART_Receive ){
 }
 
 /**
- * The command parser itself. Currently supports the following:
- * e = enable the PWM
- * x = disable the PWM
- * u float float float float = set the current control input (write to the global variable.)
- * q = query. Return the current control input that's stored in memory.
- * s = hard stop. "The Big Red Button."
+ * The command parser itself. See the welcome message for up-to-date list of commands.
  */
 void UART_Command_Parser() {
     // First, get the command, and switch on it.
@@ -116,14 +111,18 @@ void UART_Command_Parser() {
                 //    current_control[1], current_control[2], current_control[3]);
                 // Calculate the control inputs in terms of encoder ticks.
                 // Assignment to an int automatically casts the float.
-                float radius = 1.063087;
+                //float radius = 1.063087;
+                //float ticks_per_rev_man = 1185.36;
+                float ticks_per_rev_qd = 4741.44;
                 //float radius = 0.5;
                 // casting occurs automatically here.
                 // TO-DO: replace with the #define'd constants. More efficient.
-                current_control[0] = (1185.36*control_in_cm[0])/(2*3.1415*radius);
-                current_control[1] = (1185.36*control_in_cm[1])/(2*3.1415*radius);
-                current_control[2] = (1185.36*control_in_cm[2])/(2*3.1415*radius);
-                current_control[3] = (1185.36*control_in_cm[3])/(2*3.1415*radius);
+                // We use the number of ticks according to either our manual counting or
+                // the quad dec component's counting.
+                current_control[0] = (ticks_per_rev_qd*control_in_cm[0])/(2*3.1415*RADIUS);
+                current_control[1] = (ticks_per_rev_qd*control_in_cm[1])/(2*3.1415*RADIUS);
+                current_control[2] = (ticks_per_rev_qd*control_in_cm[2])/(2*3.1415*RADIUS);
+                current_control[3] = (ticks_per_rev_qd*control_in_cm[3])/(2*3.1415*RADIUS);
                 sprintf(transmit_buffer, "Stored an input, converted to encoder ticks, of %i, %i, %i, %i\r\n", current_control[0],
                     current_control[1], current_control[2], current_control[3]);
                 tensioning = 0;
@@ -147,59 +146,61 @@ void UART_Command_Parser() {
         // query the encoder ticks (current positions.)
         case 'e':
             // values are held in "count."
-            sprintf(transmit_buffer, "Current encoder tick counts are %i, %i, %i, %i\r\n", count_1,
-                count_2, count_3, count_4);
+            sprintf(transmit_buffer, "Current encoder tick counts are %i, %i, %i, %i\r\n", QuadDec_Motor1_GetCounter(),
+               QuadDec_Motor2_GetCounter(), QuadDec_Motor3_GetCounter(), QuadDec_Motor4_GetCounter());
             break;
             
         // query current error signal (control input - encoder ticks.)
         case 'r':
             // values held in "error."
-            sprintf(transmit_buffer, "Current error signal is %i, %i, %i, %i\r\n", error[0],
-                error[1], error[2], error[3]);
+            sprintf(transmit_buffer, "Current error signals are:\r\n P = {%i, %i, %i, %i}, \r\n I = {%i, %i, %i, %i}, \r\n D = {%i, %i, %i, %i}\r\n", error[0],
+                error[1], error[2], error[3], integral_error[0], integral_error[1], integral_error[2], 
+                integral_error[3], deriv_error[0], deriv_error[1], deriv_error[2], deriv_error[3]);
             break;
             
         // Tensioning command for small adjustments / calibration.
+        // Now uses the macros from data_storage.h
         case 't':    
             sscanf(receive_buffer, "t %f", &tension_control);
             if (tension_control == 1) {
                 first_loop_1 = 1;
                 motor_1 = 1;
-                current_control[0] = current_control[0] + 30;
+                current_control[0] = current_control[0] + T_TICKS_QD;
             }
             else if (tension_control == -1) {
                 first_loop_1 = 1;
                 motor_1 = 1;                
-                current_control[0] = current_control[0] - 30;
+                current_control[0] = current_control[0] - T_TICKS_QD;
             }
             else if (tension_control == 2) {
                 first_loop_2 = 1;
                 motor_2 = 1;
-                current_control[1] = current_control[1] + 30;
+                current_control[1] = current_control[1] + T_TICKS_QD;
             }
             else if (tension_control == -2) {
                 first_loop_2 = 1;
                 motor_2 = 1;
-                current_control[1] = current_control[1] - 30;
+                current_control[1] = current_control[1] - T_TICKS_QD;
             }         
             else if (tension_control == 3) {
                 first_loop_3 = 1;
                 motor_3 = 1;
-                current_control[2] = current_control[2] + 30;
+                current_control[2] = current_control[2] + T_TICKS_QD;
             }
             else if (tension_control == -3) {
                 first_loop_3 = 1;
                 motor_3 = 1;                
-                current_control[2] = current_control[2] - 30;
+                current_control[2] = current_control[2] - T_TICKS_QD;
             }
             else if (tension_control == 4) {
                 first_loop_4 = 1;
                 motor_4 = 1;
-                current_control[3] = current_control[3] + 30;
+                current_control[3] = current_control[3] + T_TICKS_QD;
             }
             else if (tension_control == -4) {
                 first_loop_4 = 1;
                 motor_4 = 1;                
-                current_control[3] = current_control[3] - 30;
+                current_control[3] = current_control[3] - T_TICKS_QD;
             }
             //tensioning = 1;
             controller_status = 1;
@@ -214,16 +215,35 @@ void UART_Command_Parser() {
             PWM_2_WriteCompare(0);
             PWM_3_WriteCompare(0);
             PWM_4_WriteCompare(0);
+            PWM_1_Stop();
+            PWM_2_Stop();
+            PWM_3_Stop();
+            PWM_4_Stop();
             
             current_control[0] = 0;
             current_control[1] = 0;
             current_control[2] = 0;
             current_control[3] = 0;
-            count_1 = 0;
-            count_2 = 0;
             count_3 = 0;
             count_4 = 0;
-            sprintf(transmit_buffer, "Controls and encoder counts reset, PWM now off.\r\n");
+            
+            // reset the quadrature encoder counts
+            QuadDec_Motor1_SetCounter(0);
+            QuadDec_Motor2_SetCounter(0);
+            QuadDec_Motor3_SetCounter(0);
+            QuadDec_Motor4_SetCounter(0);
+            
+            // also, reset all the error terms.
+            error[0] = 0;
+            error[1] = 0;
+            error[2] = 0;
+            error[3] = 0;
+            integral_error[0] = 0;
+            integral_error[1] = 0;
+            integral_error[2] = 0;
+            integral_error[3] = 0;
+            
+            sprintf(transmit_buffer, "Controls and encoder counts reset, PWM now of.\r\n");
             break;
             
         case 'q':
@@ -246,6 +266,15 @@ void UART_Command_Parser() {
             UART_ClearTxBuffer();
             // still need to specify some message to send back to the terminal.
             sprintf(transmit_buffer, "Cleared RX and TX buffers for the UART on the PSoC.\r\n");
+            break;
+        
+        case 'n':
+            // enaBle the PWMs, after having pressed d to turn them off.
+            PWM_1_Enable();
+            PWM_2_Enable();
+            PWM_3_Enable();
+            PWM_4_Enable();
+            sprintf(transmit_buffer, "PWMs re-enabled.\r\n");
             break;
             
         default:
@@ -276,6 +305,7 @@ void UART_Welcome_Message(){
     UART_PutString("u float float float float = assign U, control input\r\n");
     UART_PutString("t{-}int = Tensioning for calibration. Small steps in each direction.\r\n");
     UART_PutString("              E.g. t-4 = motor 4, loosen.\r\n");
+    UART_PutString("n = eNable all the PWMs for the motors (useful after d.)\r\n");
     UART_PutString("e = query Encoder ticks (current motor positions.)\r\n");
     UART_PutString("r = query eRror signal, control - encoder ticks.\r\n\n");
     UART_PutString("Recommended use pattern:\r\n");
