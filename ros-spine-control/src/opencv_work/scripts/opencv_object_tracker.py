@@ -23,7 +23,7 @@ TOT_H_CLICKS = 4
 # Set desired frame width in pixels
 #PIX_W = 1500
 # Drew's laptop screen is 1600x900 so the above is too big.
-PIX_W = 1000
+PIX_W = 1750
 
 
 def tracker_init():
@@ -54,21 +54,22 @@ def tracker_init():
     # blob properties
     params = cv2.SimpleBlobDetector_Params()
     # Change thresholds
-    params.filterByColor = False
+    params.filterByColor = True
+    params.blobColor = 255
     params.minThreshold = 10
     params.maxThreshold = 200
     # Filter by Area.
-    params.filterByArea = False
+    params.filterByArea = True
     params.minArea = 1500
     # Filter by Circularity
     params.filterByCircularity = True
-    params.minCircularity = 0.95
+    params.minCircularity = 0.1
     # Filter by Convexity
-    params.filterByConvexity = True
+    params.filterByConvexity = False
     params.minConvexity = 0.95
     # Filter by Inertia
-    params.filterByInertia = True
-    params.minInertiaRatio = 0.95
+    params.filterByInertia = False
+    params.minInertiaRatio = 0.15
     # Create a detector with the parameters
     ver = (cv2.__version__).split('.')
     if int(ver[0]) < 3:
@@ -88,8 +89,8 @@ def tracker_init():
     vs = cv2.VideoCapture(1)
 
     # test
-    des_fps = 60
-    vs.set(cv2.CAP_PROP_FPS, des_fps)
+    # des_fps = 60
+    # vs.set(cv2.CAP_PROP_FPS, des_fps)
 
     time.sleep(0.5)
 
@@ -206,8 +207,15 @@ def tracker_init():
         cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF
 
+        # Otsu's thresholding after Gaussian filtering
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        blur = cv2.GaussianBlur(gray_frame, (5, 5), 0)
+        ret3, th3 = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        cv2.imshow("Filtered", th3)
+
         # Detect blobs.
         keypoints = detector.detect(frame)
+        # print(len(keypoints))
 
         # Draw detected blobs as red circles.
         # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures the size of the circle corresponds to the size of blob
