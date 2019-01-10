@@ -54,13 +54,14 @@ def tracker_init():
     # blob properties
     params = cv2.SimpleBlobDetector_Params()
     # Change thresholds
-    params.filterByColor = True
-    params.blobColor = 255
-    params.minThreshold = 10
-    params.maxThreshold = 200
+    params.filterByColor = False
+    # params.blobColor = 255
+    # params.minThreshold = 10
+    # params.maxThreshold = 200bilbobilbo
     # Filter by Area.
     params.filterByArea = True
-    params.minArea = 1500
+    params.minArea = 100
+    # params.maxArea = 2500
     # Filter by Circularity
     params.filterByCircularity = True
     params.minCircularity = 0.1
@@ -207,19 +208,37 @@ def tracker_init():
         cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF
 
-        # Otsu's thresholding after Gaussian filtering
-        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        blur = cv2.GaussianBlur(gray_frame, (5, 5), 0)
-        ret3, th3 = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-        cv2.imshow("Filtered", th3)
+        # Convert BGR to HSV
+        hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+        # cv2.imshow('hsv', hsv)
+
+        # define range of blue color in HSV
+        lower_blue = np.array([100, 140, 140])
+        upper_blue = np.array([120, 255, 255])
+
+        # Threshold the HSV image to get only blue colors
+        mask = cv2.inRange(hsv, lower_blue, upper_blue)
+
+        # Bitwise-AND mask and original image
+        res = cv2.bitwise_and(frame, frame, mask=mask)
+
+        # Median blur to smooth edges
+        median = cv2.medianBlur(res, 9)
+        # cv2.imshow('Median Blur', median)
+
+        # # Otsu's thresholding after Gaussian filtering
+        # gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        # blur = cv2.GaussianBlur(gray_frame, (5, 5), 0)
+        # ret3, th3 = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        # cv2.imshow("Filtered", th3)
 
         # Detect blobs.
-        keypoints = detector.detect(frame)
+        keypoints = detector.detect(median)
         # print(len(keypoints))
 
         # Draw detected blobs as red circles.
         # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures the size of the circle corresponds to the size of blob
-        im_with_keypoints = cv2.drawKeypoints(frame, keypoints, np.array([]), (0, 0, 255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+        im_with_keypoints = cv2.drawKeypoints(median, keypoints, np.array([]), (0, 0, 255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
         # Show keypoints
         cv2.imshow("Keypoints", im_with_keypoints)
@@ -241,15 +260,42 @@ def tracker_init():
 
             # select the bounding box of the objects we want to track (make
             # sure you press ENTER or SPACE after selecting the ROI)
-            box = cv2.selectROI("Frame", frame, fromCenter=False,
-                                showCrosshair=True)
-            tracker = OPENCV_OBJECT_TRACKERS[args["tracker"]]()
-            trackers.add(tracker, frame, box)
+            # box = cv2.selectROI("Frame", frame, fromCenter=False,
+            #                     showCrosshair=True)
+            # tracker = OPENCV_OBJECT_TRACKERS[args["tracker"]]()
+            # trackers.add(tracker, frame, box)
 
-            print('Press <S> in the "Frame" window to select ROI of second object')
+            # print('Press <S> in the "Frame" window to select ROI of second object')
 
-            box = cv2.selectROI("Frame", frame, fromCenter=False,
-                                showCrosshair=True)
+            # box = cv2.selectROI("Frame", frame, fromCenter=True,
+            #                     showCrosshair=False)
+
+            # START TROUBLESHOOTING
+
+            # Convert BGR to HSV
+            hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+            cv2.imshow('hsv', hsv)
+
+            # define range of blue color in HSV
+            lower_blue = np.array([100, 140, 140])
+            upper_blue = np.array([120, 255, 255])
+
+            # Threshold the HSV image to get only blue colors
+            mask = cv2.inRange(hsv, lower_blue, upper_blue)
+
+            # Bitwise-AND mask and original image
+            res = cv2.bitwise_and(frame, frame, mask=mask)
+
+            cv2.imshow('mask', mask)
+            cv2.imshow('res', res)
+
+            cv2.waitKey(5000)
+            vs.release()
+            cv2.destroyAllWindows()
+            sys.exit()
+
+            # END: TROUBLESHOOTING
+
             tracker = OPENCV_OBJECT_TRACKERS[args["tracker"]]()
             trackers.add(tracker, frame, box)
 
