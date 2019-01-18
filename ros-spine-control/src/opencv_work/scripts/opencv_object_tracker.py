@@ -21,7 +21,7 @@ import calculate_homography
 TOT_H_CLICKS = 4
 
 # Set desired frame width in pixels
-#PIX_W = 1500
+# PIX_W = 1500
 # Drew's laptop screen is 1600x900 so the above is too big.
 PIX_W = 1750
 
@@ -54,17 +54,17 @@ def tracker_init():
     # blob properties
     params = cv2.SimpleBlobDetector_Params()
     # Change thresholds
-    params.filterByColor = False
-    # params.blobColor = 255
+    params.filterByColor = True
+    params.blobColor = 255
     # params.minThreshold = 10
-    # params.maxThreshold = 200bilbobilbo
+    # params.maxThreshold = 200
     # Filter by Area.
     params.filterByArea = True
-    params.minArea = 100
+    params.minArea = 250
     # params.maxArea = 2500
     # Filter by Circularity
     params.filterByCircularity = True
-    params.minCircularity = 0.1
+    params.minCircularity = 0.8
     # Filter by Convexity
     params.filterByConvexity = False
     params.minConvexity = 0.95
@@ -213,8 +213,12 @@ def tracker_init():
         # cv2.imshow('hsv', hsv)
 
         # define range of blue color in HSV
-        lower_blue = np.array([100, 140, 140])
+        # blue bounds are consistent, with clean edges
+        # red bounds
+        lower_blue = np.array([100, 50, 50])
         upper_blue = np.array([120, 255, 255])
+        # lower_red = np.array([130, 50, 50])
+        # upper_red = np.array([260, 255, 255])
 
         # Threshold the HSV image to get only blue colors
         mask = cv2.inRange(hsv, lower_blue, upper_blue)
@@ -223,18 +227,20 @@ def tracker_init():
         res = cv2.bitwise_and(frame, frame, mask=mask)
 
         # Median blur to smooth edges
-        median = cv2.medianBlur(res, 9)
-        # cv2.imshow('Median Blur', median)
+        median = cv2.medianBlur(mask, 11)
+        cv2.imshow('res', res)
+        cv2.imshow('Median Blur', median)
 
         # # Otsu's thresholding after Gaussian filtering
-        # gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        # blur = cv2.GaussianBlur(gray_frame, (5, 5), 0)
-        # ret3, th3 = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        blur = cv2.GaussianBlur(gray_frame, (5, 5), 0)
+        ret3, th3 = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
         # cv2.imshow("Filtered", th3)
 
         # Detect blobs.
         keypoints = detector.detect(median)
-        # print(len(keypoints))
+        # print len(keypoints)
+        print keypoints
 
         # Draw detected blobs as red circles.
         # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures the size of the circle corresponds to the size of blob
