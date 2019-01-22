@@ -28,6 +28,28 @@ PIX_W = 1750
 
 def tracker_init():
 
+    # construct the argument parser and parse the arguments
+    ap = argparse.ArgumentParser()
+
+    # use for video file
+    ap.add_argument("-v", "--video", type=str,
+                    help="path to input video file")
+    ap.add_argument("-t", "--tracker", type=str, default="kcf",
+                    help="OpenCV object tracker type")
+    args = vars(ap.parse_args())
+
+    # initialize a dictionary that maps strings to their corresponding
+    # OpenCV object tracker implementations
+    OPENCV_OBJECT_TRACKERS = {
+        "csrt": cv2.TrackerCSRT_create,
+        "kcf": cv2.TrackerKCF_create,
+        "boosting": cv2.TrackerBoosting_create,
+        "mil": cv2.TrackerMIL_create,
+        "tld": cv2.TrackerTLD_create,
+        "medianflow": cv2.TrackerMedianFlow_create,
+        "mosse": cv2.TrackerMOSSE_create
+    }
+
     # Setup SimpleBlobDetector parameters and set desired
     # blob properties
     params = cv2.SimpleBlobDetector_Params()
@@ -58,9 +80,10 @@ def tracker_init():
 
     # initialize the bounding box coordinates of the object we are going
     # to track, and scale object
+    trackers = cv2.MultiTracker_create()
     pix_com = np.zeros((2, 2), dtype=np.float32)
-    # bkeypoints = None
-    # rkeypoints = None
+    bkeypoints = None
+    rkeypoints = None
 
     # grab the reference to the web cam
     # to use PC webcam, change src=0
@@ -100,6 +123,7 @@ def tracker_init():
     # grab the current frame, then handle if we are using a
     # VideoStream or VideoCapture object
     frame = vs.read()[1]
+    # frame = frame[1] if args.get("video", False) else frame
 
     # resize and show the newly-captured frame
     frame = imutils.resize(frame, width=PIX_W)
@@ -171,25 +195,21 @@ def tracker_init():
         frame = imutils.resize(frame, width=PIX_W)
         (Height, W) = frame.shape[:2]
 
-        # blob detection and visual output of keypoints (ie red and blue dots)
-        blob_detection_data = blob_detection(detector, frame)
-        pix_com = blob_detection_data['pix_com']
-        cv2.imshow('Blue Keypoints', blob_detection_data['bim_with_keypoints'])
-        cv2.imshow('Red Keypoints', blob_detection_data['rim_with_keypoints'])
-
         # initialize the set of information we'll be displaying on
         # the frame
-        info = [
-            ("Tracker", "Blob Detection"),
-            ("Success", "Yes" if pix_com.any() else "No"),
-            ("FPS", "{:.2f}".format(fps.fps())),
-        ]
+        info = [("FPS", "{:.2f}".format(fps.fps()))
+                ]
 
         # loop over the info tuples and draw them on our frame
         for (i, (k, v)) in enumerate(info):
             text = "{}: {}".format(k, v)
             cv2.putText(frame, text, (10, Height - ((i * 20) + 20)),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+
+        # blob detection and visual output of keypoints (ie red and blue dots)
+        blob_detection_data = blob_detection(detector, frame)
+        cv2.imshow('Blue Keypoints', blob_detection_data['bim_with_keypoints'])
+        cv2.imshow('Red Keypoints', blob_detection_data['rim_with_keypoints'])
 
         # reset keyboar interrupt
         key = cv2.waitKey(1) & 0xFF
@@ -208,32 +228,86 @@ def tracker_init():
         # if the 't' key is selected, we are going to start tracking
         if key == ord('t'):
 
+            # select the bounding box of the objects we want to track (make
+            # sure you press ENTER or SPACE after selecting the ROI)
+            # box = cv2.selectROI("Frame", frame, fromCenter=False,
+            #                     showCrosshair=True)
+            # tracker = OPENCV_OBJECT_TRACKERS[args["tracker"]]()
+            # trackers.add(tracker, frame, box)
+
+            # print('Press <S> in the "Frame" window to select ROI of second object')
+
+            # box = cv2.selectROI("Frame", frame, fromCenter=True,
+            #                     showCrosshair=False)
+
+            # tracker = OPENCV_OBJECT_TRACKERS[args["tracker"]]()
+            # trackers.add(tracker, frame, box)
+
             print('[START OF TRACKING]' + '\n' + 'Press <Q> in the "Frame" window to stop tracking')
+
             # start the FPS estimator
             fps = FPS().start()
 
             break
 
-    return(detector, pix_com, vs, H, fps, key)
+    # print('ROI selected' + '\n' + 'Press <T> in the "Frame" window to start tracking')
+    # while not rospy.is_shutdown():
+
+    #     # grab the current frame, then handle if we are using a
+    #     # VideoStream or VideoCapture object
+    #     frame = vs.read()
+    #     frame = frame[1] if args.get("video", False) else frame
+    #     key = cv2.waitKey(1) & 0xFF
+
+    #     # if the `t' key is pressed, break from loop
+    #     if key == ord("t"):
+    #         print('[START OF TRACKING]' + '\n' + 'Press <Q> in the "Frame" window to stop tracking')
+    #         break
+
+    # return (trackers, args, pix_com, vs, H, fps, key)
+
+    return(detector, args, pix_com, vs, H, fps, key)
 
 
-def tracker_main(detector, pix_com, vs, fps):
+# def tracker_main(trackers, args, pix_com, vs, fps):
+def tracker_main(detector, args, pix_com, vs, fps):
 
     # grab the current frame, then handle if we are using a
     # VideoStream or VideoCapture object
     frame = vs.read()[1]
+    # frame = frame[1] if args.get("video", False) else frame
 
     # resize the frame (so we can process it faster) and grab the
     # frame dimensions
     frame = imutils.resize(frame, width=PIX_W)
     (Height, W) = frame.shape[:2]
 
+    # # grab the new bounding box coordinates of the object
+    # (success, boxes) = trackers.update(frame)
+
+    # # check to see if the tracking was a success
+    # if success:
+    #     for ind in range(len(boxes)):
+    #         (x, y, w, h) = [int(v) for v in boxes[ind, :]]
+    #         cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
+
+    #         # calculate COM info for tracked object (pixel
+    #         # coordinates, relative to the upper left corner)
+    #         pix_com[ind, :] = [x + w / 2, y + h / 2]
+
     # update the FPS counter
     fps.update()
     fps.stop()
 
+    # initialize the set of information we'll be displaying on
+    # the frame
+    # info = [
+    #     ("Tracker", args["tracker"]),
+    #     ("Success", "Yes" if success else "No"),
+    #     ("FPS", "{:.2f}".format(fps.fps())),
+    # ]
     info = [
-        ("Tracker", "Blob Detection"),
+        ("Tracker", args["tracker"]),
         ("Success", "Yes" if pix_com.any() else "No"),
         ("FPS", "{:.2f}".format(fps.fps())),
     ]
@@ -275,6 +349,8 @@ def blob_detection(detector, frame):
     # cv2.imshow('hsv', hsv)
 
     # define range of blue color in HSV
+    # blue bounds are consistent, with clean edges
+    # red bounds
     lower_blue = np.array([100, 50, 50])
     upper_blue = np.array([120, 255, 255])
     lower_red = np.array([160, 50, 50])
@@ -290,11 +366,15 @@ def blob_detection(detector, frame):
     # Median blur to smooth edges and output image
     bmedian = cv2.medianBlur(blue_mask, 11)
     rmedian = cv2.medianBlur(red_mask, 11)
+    # cv2.imshow('res', res)
+    # cv2.imshow('Blue Median Blur', bmedian)
+    # cv2.imshow('Red Median Blur', rmedian)
 
     # Otsu's thresholding after Gaussian filtering
     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray_frame, (5, 5), 0)
     ret3, th3 = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    # cv2.imshow("Filtered", th3)
 
     # Detect blobs.
     bkeypoints = detector.detect(bmedian)

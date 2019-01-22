@@ -30,13 +30,13 @@ def talker():
         # wrap everything around a keyboard interrupt catcher
         try:
             # run initalization
-            (trackers, args, pix_com, vs, H, fps, key) = tracker_init()
+            (detector, pix_com, vs, H, fps, key) = tracker_init()
 
             # while still tracking
             while not key == ord("q"):
 
                 # run tracker
-                (pix_com_data, key) = tracker_main(trackers, args, pix_com, vs, fps)
+                (pix_com_data, key) = tracker_main(detector, pix_com, vs, fps)
 
                 # calculate true COM points using homography matrix
                 pix_com_hom = np.append(pix_com_data, [[1, 1]], axis=0)
@@ -62,14 +62,8 @@ def talker():
                 pub.publish(message)
                 rate.sleep()
 
-            # if we are using a webcam, release the pointer
-            if not args.get("video", False):
-                vs.release()
-                print('[END OF TRACKING]')
-
-            # otherwise, release the file pointer
-            else:
-                vs.release()
+            vs.release()
+            print('[END OF TRACKING]')
 
             # close all windows and leave loop
             cv2.destroyAllWindows()
