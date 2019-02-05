@@ -52,13 +52,9 @@ def talker():
 
                 # calculate angle of rotation of vertebrae
                 theta = tracker_angle(np.transpose(pt1true), np.transpose(pt2true))
-                # print(theta)
-                # append rotation data with COM position data
-                # vert_data = np.append(true_com.flatten(), theta)
 
                 # publish data
                 message = SpineState(rotation=theta, com1=pt1true, com2=pt2true)
-                # message = SpineState(rotation=theta, com1=pix_com_data[0, :], com2=pix_com_data[1, :])
                 pub.publish(message)
                 rate.sleep()
 
