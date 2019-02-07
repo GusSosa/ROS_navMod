@@ -143,6 +143,8 @@ def tracker_init():
     # # close the current window before proceeding.
     # cv2.destroyWindow("Frame")
 
+    # UPDATED AUTO-HOMOGRAPHY
+
     # We should now have four elements in the h_pts array now.
     print("Press <T> in any window to start tracking")
 
@@ -320,6 +322,56 @@ def blob_detection(detector, frame):
 
     return {'pix_com': pix_com, 'bim_with_keypoints': bim_with_keypoints, 'rim_with_keypoints': rim_with_keypoints,
             'blim_with_keypoints': blim_with_keypoints, 'blcom': blcom}
+
+
+def auto_homography():
+
+    print("[INFO] Now calculating the homography.")
+
+    # # We should now have four elements in the h_pts array now.
+    # print("Captured points for the homography:")
+    # print(h_pts)
+    # # Convert the Python list of points to a NumPy array of the form
+    # #   | u1 u2 u3 u4 |
+    # #   | v1 v2 v3 v4 |
+    # uv = np.array(h_pts).T
+
+    ################################################
+    # NOTE: blcom is pixel COM of the black dots in camera frame, of the form:
+    # | x1 y1 |
+    # | x2 y2 |
+    # | ..... |
+    # | xN yN |
+    uv = blcom
+    ################################################
+
+    # Specify the points in the global frame, i.e. the frame of the vertebra
+    # Assume that the origin is the point in the bottom left
+    # and are arranged vertically, starting at the bottom (origin) going up
+    # As of 2019_XX.XX, the points are
+
+    # # Specify the points in the global frame, i.e. the frame of the vertebra.
+    # # Assume the points go (bottom left, top left, top right, bottom right)
+    # # and that the origin is at the bottom left.
+    # global_pts = np.ndarray((4, 2))
+    # # On 2018-12-5, the blue tape on the test setup was 16 squares of 2cm each,
+    # # so that's 32 cm along each edge.
+    # edge = 32
+    # # the coordinates are then,
+    # # for points 0 to 4 in the world frame,
+    # global_pts[0, :] = [0, 0]
+    # global_pts[1, :] = [0, edge]
+    # global_pts[2, :] = [edge, edge]
+    # global_pts[3, :] = [edge, 0]
+
+    # # and can now call the function itself.
+    # # as of 2018-12-5, uv is 2x4 but global_pts is 4x2. STANDARDIZE THIS.
+    # H = calculate_homography.calc_H(uv, global_pts)
+    # print("Calculated homography is:")
+    # print(H)
+
+    # # close the current window before proceeding.
+    # cv2.destroyWindow("Frame")
 
 
 if __name__ == "__main__":
