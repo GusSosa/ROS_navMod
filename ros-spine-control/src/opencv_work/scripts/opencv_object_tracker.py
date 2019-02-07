@@ -35,12 +35,12 @@ def tracker_init():
     # params.minThreshold = 10
     # params.maxThreshold = 200
     # Filter by Area.
-    params.filterByArea = True
-    params.minArea = 250
+    params.filterByArea = True  # 250 previously
+    params.minArea = 1000
     # params.maxArea = 2500
     # Filter by Circularity
     params.filterByCircularity = True
-    params.minCircularity = 0.8
+    params.minCircularity = 0.85
     # Filter by Convexity
     params.filterByConvexity = False
     params.minConvexity = 0.95
@@ -178,11 +178,8 @@ def tracker_init():
         cv2.imshow('Blue Keypoints', blob_detection_data['bim_with_keypoints'])
         cv2.imshow('Red Keypoints', blob_detection_data['rim_with_keypoints'])
 
-        # TEST #####################################################
-        cv2.imshow('binary_img', blob_detection_data['binary_img'])
-        print(blob_detection_data['blcom'])
-
-        # END TEST ##################################################
+        cv2.imshow('blim_with_keypoints', blob_detection_data['blim_with_keypoints'])
+        # print(blob_detection_data['blcom'])
 
         # initialize the set of information we'll be displaying on
         # the frame
@@ -279,60 +276,50 @@ def blob_detection(detector, frame):
 
     # Convert BGR to HSV
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-    # cv2.imshow('hsv', hsv)
 
     # define range of blue color in HSV
     lower_blue = np.array([100, 50, 50])
     upper_blue = np.array([120, 255, 255])
     lower_red = np.array([160, 50, 50])
     upper_red = np.array([180, 255, 255])
+    lower_black = np.array([0, 0, 20])
+    upper_black = np.array([180, 255, 60])
 
     # Threshold the HSV image to get only blue and red colors
     blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
     red_mask = cv2.inRange(hsv, lower_red, upper_red)
-
-    # Bitwise-AND mask and original image
-    # res = cv2.bitwise_and(frame, frame, mask=blue_mask)
+    black_mask = cv2.inRange(hsv, lower_black, upper_black)
 
     # Median blur to smooth edges and output image
     bmedian = cv2.medianBlur(blue_mask, 11)
     rmedian = cv2.medianBlur(red_mask, 11)
+    blmedian = cv2.medianBlur(black_mask, 11)
 
     # Otsu's thresholding after Gaussian filtering
     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray_frame, (5, 5), 0)
     ret3, th3 = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
-    # TEST #############################################################################
-    lower_black = np.array([0, 0, 0])
-    upper_black = np.array([180, 255, 50])
-    black_mask = cv2.inRange(hsv, lower_black, upper_black)
-    binary_img = cv2.medianBlur(black_mask, 11)
-    # binary_img = cv2.adaptiveThreshold(gray_frame, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-    #                            cv2.THRESH_BINARY_INV, 131, 5)
-    blkeypoints = detector.detect(binary_img)
-    blim_with_keypoints = cv2.drawKeypoints(binary_img, blkeypoints, np.array([]), (0, 0, 255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-    blcom = np.array([int(i) for i in blkeypoints[0].pt]) if blkeypoints else np.array([0, 0])
-
-    # END TEST ##########################################################################
-
     # Detect blobs.
     bkeypoints = detector.detect(bmedian)
     rkeypoints = detector.detect(rmedian)
+    blkeypoints = detector.detect(blmedian)
 
     # Draw detected blobs as red circles.
     # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures the size of the circle corresponds to the size of blob
     bim_with_keypoints = cv2.drawKeypoints(bmedian, bkeypoints, np.array([]), (0, 0, 255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
     rim_with_keypoints = cv2.drawKeypoints(rmedian, rkeypoints, np.array([]), (0, 0, 255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    blim_with_keypoints = cv2.drawKeypoints(blmedian, blkeypoints, np.array([]), (0, 0, 255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
     # Finds center of mass of both red and blue dots in pixel values
     # and converts these float lists into integer numpy arrays
     bcom = np.array([int(i) for i in bkeypoints[0].pt]) if bkeypoints else np.array([0, 0])
     rcom = np.array([int(i) for i in rkeypoints[0].pt]) if rkeypoints else np.array([0, 0])
+    blcom = np.array([blkeypoints[i].pt for i in range(int(len(blkeypoints)))]).astype(int)
     pix_com = np.array([bcom, rcom])
 
     return {'pix_com': pix_com, 'bim_with_keypoints': bim_with_keypoints, 'rim_with_keypoints': rim_with_keypoints,
-            'binary_img': blim_with_keypoints, 'blcom': blcom}
+            'blim_with_keypoints': blim_with_keypoints, 'blcom': blcom}
 
 
 if __name__ == "__main__":
