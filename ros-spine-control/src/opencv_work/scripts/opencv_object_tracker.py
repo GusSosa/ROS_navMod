@@ -124,6 +124,8 @@ def tracker_init():
     # # Assume the points go (bottom left, top left, top right, bottom right)
     # # and that the origin is at the bottom left.
     # global_pts = np.ndarray((4, 2))
+
+    # print global_pts
     # # On 2018-12-5, the blue tape on the test setup was 16 squares of 2cm each,
     # # so that's 32 cm along each edge.
     # edge = 32
@@ -143,11 +145,6 @@ def tracker_init():
     # # close the current window before proceeding.
     # cv2.destroyWindow("Frame")
 
-    # UPDATED AUTO-HOMOGRAPHY
-
-    # We should now have four elements in the h_pts array now.
-    print("Press <T> in any window to start tracking")
-
     # # Testing:
     # # 1) show a grid of points that should correspond to the grid behind the spine
     # # calculate_homography.check_homography(H, vs, args, 16, 16, 2)
@@ -156,6 +153,30 @@ def tracker_init():
 
     # # Back to the rest of the script.
     # print('Press <S> in the "Frame" window to select ROI of first object')
+
+    # UPDATED AUTO-HOMOGRAPHY
+
+    # We want to wait until the user is ready to start.
+    # A nifty way to do so is to have them type something into the terminal, then discard what was typed.
+    raw_input("Please move out of the frame, then press enter to capture the frame that will be used for the homography.")
+
+    # update the FPS counter
+    fps.update()
+    fps.stop()
+
+    # resize the frame (so we can process it faster) and grab the
+    # frame dimensions
+    frame = imutils.resize(frame, width=PIX_W)
+    (Height, W) = frame.shape[:2]
+
+    # blob detection and visual output of keypoints (ie red and blue dots)
+    blob_detection_data = blob_detection(detector, frame)
+
+    # Calculate homography matrix
+    H = auto_homography(blob_detection_data)
+
+    # We can now start tracking
+    print("Press <T> in any window to start tracking")
 
     # loop over frames from the video stream
     while not rospy.is_shutdown():
@@ -181,7 +202,7 @@ def tracker_init():
         cv2.imshow('Red Keypoints', blob_detection_data['rim_with_keypoints'])
 
         cv2.imshow('blim_with_keypoints', blob_detection_data['blim_with_keypoints'])
-        # print(blob_detection_data['blcom'])
+        print(blob_detection_data['blcom'])
 
         # initialize the set of information we'll be displaying on
         # the frame
@@ -324,54 +345,38 @@ def blob_detection(detector, frame):
             'blim_with_keypoints': blim_with_keypoints, 'blcom': blcom}
 
 
-def auto_homography():
+def auto_homography(blob_detection_data):
 
     print("[INFO] Now calculating the homography.")
 
-    # # We should now have four elements in the h_pts array now.
-    # print("Captured points for the homography:")
-    # print(h_pts)
-    # # Convert the Python list of points to a NumPy array of the form
-    # #   | u1 u2 u3 u4 |
-    # #   | v1 v2 v3 v4 |
-    # uv = np.array(h_pts).T
-
-    ################################################
     # NOTE: blcom is pixel COM of the black dots in camera frame, of the form:
     # | x1 y1 |
     # | x2 y2 |
     # | ..... |
     # | xN yN |
-    uv = blcom
-    ################################################
+    uv = blob_detection_data['blcom']
 
-    # Specify the points in the global frame, i.e. the frame of the vertebra
-    # Assume that the origin is the point in the bottom left
-    # and are arranged vertically, starting at the bottom (origin) going up
-    # As of 2019_XX.XX, the points are
+    # Specify global points in the global frame (i.e. vertebra frame)
+    # This assumes all 8 homography dots have been located,
+    # starting in bottom right corner (origin), with points alternating as follows:
+    # | - 8 |
+    # | 7 - |
+    # | - 6 |
+    # | ... |
+    # | 1 - |
+    # | - 0 |
+    # center_dist_vert is the vertical distance between two consecutive points [in]
+    # center_dist_horz is the horizontal distance between the two vertical sets of points [in]
+    center_dist_vert = 2.5
+    center_dist_horz = 15
+    global_pts = np.vstack((np.array([i * center_dist_vert for i in range(8)]), np.tile([0, 1], 4) * -center_dist_horz)).transpose()
 
-    # # Specify the points in the global frame, i.e. the frame of the vertebra.
-    # # Assume the points go (bottom left, top left, top right, bottom right)
-    # # and that the origin is at the bottom left.
-    # global_pts = np.ndarray((4, 2))
-    # # On 2018-12-5, the blue tape on the test setup was 16 squares of 2cm each,
-    # # so that's 32 cm along each edge.
-    # edge = 32
-    # # the coordinates are then,
-    # # for points 0 to 4 in the world frame,
-    # global_pts[0, :] = [0, 0]
-    # global_pts[1, :] = [0, edge]
-    # global_pts[2, :] = [edge, edge]
-    # global_pts[3, :] = [edge, 0]
+    # Call homography function
+    H = calculate_homography.calc_H(uv, global_pts)
+    print("Calculated homography is:")
+    print(H)
 
-    # # and can now call the function itself.
-    # # as of 2018-12-5, uv is 2x4 but global_pts is 4x2. STANDARDIZE THIS.
-    # H = calculate_homography.calc_H(uv, global_pts)
-    # print("Calculated homography is:")
-    # print(H)
-
-    # # close the current window before proceeding.
-    # cv2.destroyWindow("Frame")
+    return H
 
 
 if __name__ == "__main__":
