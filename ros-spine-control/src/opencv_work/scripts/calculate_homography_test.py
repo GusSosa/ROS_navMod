@@ -22,7 +22,7 @@ img2 = cv2.imread('spine_in_scene.png', 0)  # trainImage
 orb = cv2.ORB_create()
 
 # find the keypoints and descriptors with ORB
-# NOTE: SIFT and SURF are not avaialble by default with openCV 3.0+:
+# NOTE: SIFT and SURF are not avaialble by default with openCV 3.0+:	
 # They require OPENCV_ENABLE_NONFREE option to be enabled during build 
 # kp1, des1 = sift.detectAndCompute(img1, None)
 # kp2, des2 = sift.detectAndCompute(img2, None)

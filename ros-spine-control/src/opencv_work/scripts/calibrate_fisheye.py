@@ -23,8 +23,9 @@ imgpoints = []  # 2d points in image plane.
 images = glob.glob(os.path.dirname(os.path.abspath(__file__)) + '/*.jpg')
 
 for fname in images:
+    print fname
     img = cv2.imread(fname)
-    print _img_shape
+    print type(fname)
     if _img_shape == None:
         _img_shape = img.shape[:2]
     else:
