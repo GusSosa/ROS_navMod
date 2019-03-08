@@ -9,9 +9,8 @@
 
 import cv2
 import numpy as np
-import os
-import glob
 import sys
+import rospy
 
 # You should replace these 3 lines with the output in calibration step
 # NOTE: Need to update to take K and D as inputs
@@ -22,21 +21,34 @@ D = np.array([[0.03110827900071547], [5.2583990216132435], [-32.665517530927055]
 
 def undistort(img_path):
 
-    # Select image path and get shape
-    # NOTE: Need to update generically
-    img_path_upd = '/home/jmadden/2d-spine-control-hardware/ros-spine-control/src/opencv_work/scripts/' + str(img_path) + '.jpg'
-    img = cv2.imread(img_path_upd)
-    h, w = img.shape[:2]
+    for img_name in img_path:
 
-    # map using input matrices and fisheye function, undistort
-    map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), K, DIM, cv2.CV_16SC2)
-    undistorted_img = cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+        while not rospy.is_shutdown():
 
-    # show before and after images
-    cv2.imshow('distorted', img)
-    cv2.imshow("undistorted", undistorted_img)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+            # Select image path and get shape
+            # NOTE: Need to update generically
+            img_path_upd = '/home/jmadden/2d-spine-control-hardware/ros-spine-control/src/opencv_work/scripts/' + str(img_path) + '.jpg'
+            img = cv2.imread(img_path_upd)
+            h, w = img.shape[:2]
+
+            # map using input matrices and fisheye function, undistort
+            map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), K, DIM, cv2.CV_16SC2)
+            undistorted_img = cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+
+            # show before and after images
+            cv2.imshow('distorted', img)
+            cv2.imshow("undistorted", undistorted_img)
+
+            # reset keyboard interrupt
+            key = cv2.waitKey(1) & 0xFF
+
+            # if the "q" key is pressed, quit the program
+            if key == ord("q"):
+
+                # close all windows and end program
+                cv2.destroyAllWindows()
+                print('[END]')
+                sys.exit()
 
 
 if __name__ == '__main__':
