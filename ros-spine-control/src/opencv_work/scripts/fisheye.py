@@ -1,9 +1,9 @@
 #!/usr/bin/python2.7
 
 # fisheye.py
-# Program to determine the required K and D parameters for cv2.fisheye function,
-# using a collection of previously supplied checker
-# and then undistort a user-supplied image
+# Program to determine the required K and D matrices for cv2.fisheye function,
+# using a collection of previously supplied checkerboard images,
+# and then undistort the web cam video using those matrices
 # Source: https://medium.com/@kennethjiang/calibrate-fisheye-lens-using-opencv-333b05afa0b0
 
 import cv2
@@ -22,7 +22,8 @@ def calibrate():
 
     CHECKERBOARD = (6, 9)
     subpix_criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.1)
-    calibration_flags = cv2.fisheye.CALIB_RECOMPUTE_EXTRINSIC + cv2.fisheye.CALIB_CHECK_COND + cv2.fisheye.CALIB_FIX_SKEW
+    calibration_flags = cv2.fisheye.CALIB_RECOMPUTE_EXTRINSIC + cv2.fisheye.CALIB_FIX_SKEW
+    # calibration_flags = cv2.fisheye.CALIB_RECOMPUTE_EXTRINSIC + cv2.fisheye.CALIB_CHECK_COND + cv2.fisheye.CALIB_FIX_SKEW
     objp = np.zeros((1, CHECKERBOARD[0] * CHECKERBOARD[1], 3), np.float32)
     objp[0, :, :2] = np.mgrid[0:CHECKERBOARD[0], 0:CHECKERBOARD[1]].T.reshape(-1, 2)
     _img_shape = None
@@ -63,7 +64,7 @@ def calibrate():
             rvecs,
             tvecs,
             calibration_flags,
-            (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 1e-6)
+            (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 1e-3)
         )
 
     print("Found " + str(N_OK) + " valid images for calibration")
@@ -75,48 +76,59 @@ def calibrate():
     return{'D': D, 'K': K}
 
 
-def undistort(img_path, K, D):
+def undistort(K, D):
 
-    for img_name in img_path:
+    # start video stream with webcam
+    vs = cv2.VideoCapture(0)
 
-        while not rospy.is_shutdown():
+    while not rospy.is_shutdown():
 
-            vs = cv2.VideoCapture(0)
-            rospy.wait(5)
-            img = vs.read()[1]
+        # read current web cam frame
+        img = vs.read()[1]
 
-            # Select image path and get shape
-            # NOTE: Need to update generically
-            # img_path_upd = '/home/jmadden/2d-spine-control-hardware/ros-spine-control/src/opencv_work/scripts/' + str(img_path) + '.jpg'
-            # img = cv2.imread(img_path + '.jpg')
-            h, w = img.shape[:2]
+        # dim2 = None
+        # dim3 = None
+        # balance = 0.0
+        # dim1 = img.shape[:2][::-1]  # dim1 is the dimension of input image to un-distort
+        # assert dim1[0] / dim1[1] == DIM[0] / DIM[1], "Image to undistort needs to have same aspect ratio as the ones used in calibration"
+        # if not dim2:
+        #     dim2 = dim1
+        # if not dim3:
+        #     dim3 = dim1
+        # scaled_K = K * dim1[0] / DIM[0]  # The values of K is to scale with image dimension.
+        # scaled_K[2][2] = 1.0  # Except that K[2][2] is always 1.0
+        # # This is how scaled_K, dim2 and balance are used to determine the final K used to un-distort image. OpenCV document failed to make this clear!
+        # new_K = cv2.fisheye.estimateNewCameraMatrixForUndistortRectify(scaled_K, D, dim2, np.eye(3), balance=balance)
+        # map1, map2 = cv2.fisheye.initUndistortRectifyMap(scaled_K, D, np.eye(3), new_K, dim3, cv2.CV_16SC2)
+        # undistorted_img = cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
 
-            # map using input matrices and fisheye function, undistort
-            map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), K, DIM, cv2.CV_16SC2)
-            undistorted_img = cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
+        h, w = img.shape[:2]
 
-            # show before and after images
-            cv2.imshow('distorted', img)
-            cv2.imshow("undistorted", undistorted_img)
+        # map using input matrices and fisheye function, undistort
+        map1, map2 = cv2.fisheye.initUndistortRectifyMap(K, D, np.eye(3), K, DIM, cv2.CV_16SC2)
+        undistorted_img = cv2.remap(img, map1, map2, interpolation=cv2.INTER_LINEAR, borderMode=cv2.BORDER_CONSTANT)
 
-            # reset keyboard interrupt
-            key = cv2.waitKey(1) & 0xFF
+        # show before and after images
+        cv2.imshow('distorted', img)
+        cv2.imshow("undistorted", undistorted_img)
 
-            # if the "q" key is pressed, quit the program
-            if key == ord("q"):
+        # reset keyboard interrupt
+        key = cv2.waitKey(1) & 0xFF
 
-                # close all windows and end program
-                vs.release()
-                cv2.destroyAllWindows()
-                print('[END]')
-                sys.exit()
+        # if the "q" key is pressed, quit the program
+        if key == ord("q"):
+
+            # close all windows and end program
+            vs.release()
+            cv2.destroyAllWindows()
+            print('[PROGRAM END]')
+            sys.exit()
 
 
 if __name__ == '__main__':
     try:
         calibration_data = calibrate()
         [K, D] = [calibration_data['K'], calibration_data['D']]
-        for p in sys.argv[1:]:
-            undistort(p, K, D)
+        undistort(K, D)
     except rospy.ROSInterruptException:
         pass
