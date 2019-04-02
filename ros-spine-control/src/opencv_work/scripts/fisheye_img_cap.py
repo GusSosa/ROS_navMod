@@ -12,7 +12,7 @@ DELAY = 1
 def img_cap():
 
     # start video stream with webcam
-    vs = cv2.VideoCapture(0)
+    vs = cv2.VideoCapture(1)
     ind = 1
 
     while not rospy.is_shutdown():
@@ -33,7 +33,7 @@ def img_cap():
             print('Image No. ' + str(ind) + ' Captured')
             ind = ind + 1
 
-        # if the 's' key is pressed, take one image every 2 seconds
+        # if the 's' key is pressed, take one image every 1 second
         if key == ord('s'):
             print('Continuous Shooting Activated')
 
