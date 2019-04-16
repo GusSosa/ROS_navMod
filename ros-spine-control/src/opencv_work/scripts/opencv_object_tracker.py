@@ -12,7 +12,7 @@ import sys
 import imutils
 import math
 import rospy
-import calculate_homography
+import calculate_homography2
 
 
 # Define the total number of expected clicks for the homography.
@@ -30,13 +30,13 @@ def tracker_init():
     # blob properties
     params = cv2.SimpleBlobDetector_Params()
     # Change thresholds
-    params.filterByColor = True
+    params.filterByColor = False
     params.blobColor = 255
     # params.minThreshold = 10
     # params.maxThreshold = 200
     # Filter by Area.
-    params.filterByArea = True  # 250 previously
-    params.minArea = 1000
+    params.filterByArea = True  # 1000 previously
+    params.minArea = 500
     # params.maxArea = 2500
     # Filter by Circularity
     params.filterByCircularity = True
@@ -146,34 +146,28 @@ def tracker_init():
     # cv2.destroyWindow("Frame")
 
     # # Testing:
-    # # 1) show a grid of points that should correspond to the grid behind the spine
-    # # calculate_homography.check_homography(H, vs, args, 16, 16, 2)
-    # # 2) calculate the distance between two points in the local frame.
-    # # calculate_homography.test_H(H, vs, args)
+    # # calculate the distance between two points in the local frame.
+    # calculate_homography.test_H(H, vs)
 
     # # Back to the rest of the script.
     # print('Press <S> in the "Frame" window to select ROI of first object')
 
-    # UPDATED AUTO-HOMOGRAPHY
-
     # We want to wait until the user is ready to start.
     # A nifty way to do so is to have them type something into the terminal, then discard what was typed.
-    raw_input("Please move out of the frame, then press enter to capture the frame that will be used for the homography.")
-
-    # update the FPS counter
-    fps.update()
-    fps.stop()
+    # raw_input("Please move out of the frame, then press enter to capture the frame that will be used for the homography.")
 
     # resize the frame (so we can process it faster) and grab the
     # frame dimensions
-    frame = imutils.resize(frame, width=PIX_W)
-    (Height, W) = frame.shape[:2]
+    frame1 = vs.read()[1]
+    frame1 = imutils.resize(frame1, width=PIX_W)
+    cv2.imshow('Homography Frame', frame1)
+    (Height, W) = frame1.shape[:2]
 
     # blob detection and visual output of keypoints (ie red and blue dots)
-    blob_detection_data = blob_detection(detector, frame)
+    blob_detection_data = blob_detection(detector, frame1)
 
     # Calculate homography matrix
-    H = auto_homography(blob_detection_data)
+    # H = auto_homography(blob_detection_data)
 
     # We can now start tracking
     print("Press <T> in any window to start tracking")
@@ -184,7 +178,6 @@ def tracker_init():
         # grab the current frame, then handle if we are using a
         # VideoStream or VideoCapture object
         frame = vs.read()[1]
-        # frame = frame[1] if args.get("video", False) else frame
 
         # update the FPS counter
         fps.update()
@@ -198,10 +191,10 @@ def tracker_init():
         # blob detection and visual output of keypoints (ie red and blue dots)
         blob_detection_data = blob_detection(detector, frame)
         pix_com = blob_detection_data['pix_com']
-        cv2.imshow('Blue Keypoints', blob_detection_data['bim_with_keypoints'])
-        cv2.imshow('Red Keypoints', blob_detection_data['rim_with_keypoints'])
-
-        cv2.imshow('blim_with_keypoints', blob_detection_data['blim_with_keypoints'])
+        # cv2.imshow('Blue Keypoints', blob_detection_data['bim_with_keypoints'])
+        # cv2.imshow('Red Keypoints', blob_detection_data['rim_with_keypoints'])
+        # cv2.imshow('Black Keypoints', blob_detection_data['blim_with_keypoints'])
+        cv2.imshow('Silver Keypoints', blob_detection_data['slim_with_keypoints'])
         print(blob_detection_data['blcom'])
 
         # initialize the set of information we'll be displaying on
@@ -217,6 +210,8 @@ def tracker_init():
             text = "{}: {}".format(k, v)
             cv2.putText(frame, text, (10, Height - ((i * 20) + 20)),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+
+        # cv2.imshow('frame', frame)
 
         # reset keyboar interrupt
         key = cv2.waitKey(1) & 0xFF
@@ -307,16 +302,20 @@ def blob_detection(detector, frame):
     upper_red = np.array([180, 255, 255])
     lower_black = np.array([0, 0, 20])
     upper_black = np.array([180, 255, 60])
+    lower_silver = np.array([0, 0, 160])
+    upper_silver = np.array([180, 255, 240])
 
     # Threshold the HSV image to get only blue and red colors
     blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
     red_mask = cv2.inRange(hsv, lower_red, upper_red)
     black_mask = cv2.inRange(hsv, lower_black, upper_black)
+    silver_mask = cv2.inRange(hsv, lower_silver, upper_silver)
 
     # Median blur to smooth edges and output image
     bmedian = cv2.medianBlur(blue_mask, 11)
     rmedian = cv2.medianBlur(red_mask, 11)
-    blmedian = cv2.medianBlur(black_mask, 11)
+    blmedian = cv2.medianBlur(black_mask, 11)  # 2019_04.15 note: value of 5 works well for smaller homography dots
+    smedian = cv2.medianBlur(silver_mask, 2)
 
     # Otsu's thresholding after Gaussian filtering
     gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -327,22 +326,26 @@ def blob_detection(detector, frame):
     bkeypoints = detector.detect(bmedian)
     rkeypoints = detector.detect(rmedian)
     blkeypoints = detector.detect(blmedian)
+    skeypoints = detector.detect(smedian)
 
     # Draw detected blobs as red circles.
     # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures the size of the circle corresponds to the size of blob
     bim_with_keypoints = cv2.drawKeypoints(bmedian, bkeypoints, np.array([]), (0, 0, 255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
     rim_with_keypoints = cv2.drawKeypoints(rmedian, rkeypoints, np.array([]), (0, 0, 255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
     blim_with_keypoints = cv2.drawKeypoints(blmedian, blkeypoints, np.array([]), (0, 0, 255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    slim_with_keypoints = cv2.drawKeypoints(smedian, skeypoints, np.array([]), (0, 0, 255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
     # Finds center of mass of both red and blue dots in pixel values
     # and converts these float lists into integer numpy arrays
     bcom = np.array([int(i) for i in bkeypoints[0].pt]) if bkeypoints else np.array([0, 0])
     rcom = np.array([int(i) for i in rkeypoints[0].pt]) if rkeypoints else np.array([0, 0])
     blcom = np.array([blkeypoints[i].pt for i in range(int(len(blkeypoints)))]).astype(int)
+    scom = np.array([skeypoints[i].pt for i in range(int(len(skeypoints)))]).astype(int)
     pix_com = np.array([bcom, rcom])
 
     return {'pix_com': pix_com, 'bim_with_keypoints': bim_with_keypoints, 'rim_with_keypoints': rim_with_keypoints,
-            'blim_with_keypoints': blim_with_keypoints, 'blcom': blcom}
+            'blim_with_keypoints': blim_with_keypoints, 'slim_with_keypoints': slim_with_keypoints,
+            'blcom': blcom}
 
 
 def auto_homography(blob_detection_data):
@@ -370,9 +373,10 @@ def auto_homography(blob_detection_data):
     center_dist_vert = 2.5
     center_dist_horz = 15
     global_pts = np.vstack((np.array([i * center_dist_vert for i in range(8)]), np.tile([0, 1], 4) * -center_dist_horz)).transpose()
+    # print global_pts
 
     # Call homography function
-    H = calculate_homography.calc_H(uv, global_pts)
+    H = calculate_homography2.calc_H(uv, global_pts)
     print("Calculated homography is:")
     print(H)
 
