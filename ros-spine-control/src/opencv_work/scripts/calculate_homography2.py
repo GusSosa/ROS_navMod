@@ -11,30 +11,48 @@ import numpy as np
 from numpy.linalg import *
 import cv2
 import rospy
+import imutils
 
 
 def calc_H(uv, xy):
 
-    print uv
-    print type(uv)
-    num_pts = np.size(uv, 1)
+    print 'uv: ' + str(uv)
+    print 'xy: ' + str(xy)
+    # print type(uv)
+    num_pts = np.size(uv, 0)
+    # print num_pts
 
     # Initialize the A and b matrices
     # There will be 2*N rows, since each point has an x, y position
-    A = np.ndarray((2 * num_pts, 8))
+    A = np.zeros((2 * num_pts, 8))
     # The b vector will be 2N long
-    b = np.ndarray((2 * num_pts, 1))
+    b = np.zeros((2 * num_pts, 1))
+    h = np.zeros((num_pts, 1))
+
+    # print 'A init: ' + str(A)
+    # print np.size(A, 0)
+    # print 'b init: ' + str(b)
+    # print np.size(b, 0)
 
     # Loop through and build up A and b based on the points matrix.
     for i in range(0, num_pts):
         # JACOB MADDEN - 2019_04.15
-        # cleaned up update
-        A[i * 2, :] = np.array([xy[i, 0], xy[i, 1], 1, 0, 0, 0, -uv[0, i] * xy[i, 0], -uv[0, i] * xy[i, 1]])
-        A[i * 2 + 1, :] = np.array([0, 0, 0, xy[i, 0], xy[i, 1], 1, -uv[1, i] * xy[i, 0], -uv[1, i] * xy[i, 1]])
+        A[i * 2, :] = np.array([xy[i, 0], xy[i, 1], 1, 0, 0, 0, -uv[i, 0] * xy[i, 0], -uv[i, 0] * xy[i, 1]])
+        A[i * 2 + 1, :] = np.array([0, 0, 0, xy[i, 0], xy[i, 1], 1, -uv[i, 1] * xy[i, 0], -uv[i, 1] * xy[i, 1]])
+        b[i * 2, 0] = uv[i, 0]
+        b[i * 2 + 1, 0] = uv[i, 1]
+        # print 'A: ' + str(A)
+        # print 'b: ' + str(b)
+        # print 'index: ' + str(i)
+        # raw_input('break')
 
-    # Find homogrpahy vector, h, by doing A^-1 b
-    Ainv = np.linalg.inv(A)
-    h = np.dot(Ainv, b)
+    # Find homography vector, h, by using least squares minimization
+    # print 'A: ' + str(A)
+    # print 'b: ' + str(b)
+    # Ainv = np.linalg.inv(A)
+    # h = np.dot(Ainv, b)
+    h = np.linalg.lstsq(A, b, rcond=None)[0]
+    # print 'h: ' + str(h)
 
     # h is of the form [h11, h12, h13, h21, h22, h23, h31, h32]
     # but each element is its own one-element array,
@@ -77,7 +95,7 @@ def test_H(H, vs):
     # VideoStream or VideoCapture object
     # resize the frame (better viewing, consistent with object tracker.
     frame = vs.read()[1]
-    frame = imutils.resize(frame, width=1000)
+    frame = imutils.resize(frame, width=1750)
 
     # show the newly-captured frame
     cv2.imshow("FrameForTesting", frame)
@@ -113,7 +131,7 @@ def test_H(H, vs):
     # preallocate the xy points
     # it's homogenous, so a 3-vector not a 2-vector
     xy = np.ndarray((3, num_pts))
-    
+
     # plug in for each xy
     for i in range(0, num_pts):
         # of the two u, v points that were clicked on, are:
@@ -126,11 +144,11 @@ def test_H(H, vs):
     # the net vector between them is
     # this ONLY works with two clicks!!!
     r = xy[:, 0] - xy[:, 1]
-    
+
     # the distance is the norm of the net vector
     dist = np.linalg.norm(r, 2)
     print('Distance between your two points, in cm, is')
     print(dist)
-    
+
     # close the window.
     cv2.destroyWindow("FrameForTesting")
