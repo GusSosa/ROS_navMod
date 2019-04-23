@@ -1,5 +1,19 @@
 #!/usr/bin/python2.7
 
+# fisheye_img_cap.py
+# Program used in conjunction with fisheye.py. This program captures images from the specified camera,
+# used for calibration and correction of the fisheye distortion for that camera.
+
+# This program can be used in two modes:
+# 1) Single Image Capture: Press <c> key to capture an individual image
+# 2) Continuous Image Capture: Press <s> key and the program will capture one image / sec until stopped (<q>)
+
+# NOTE 1: Images captured will be saved in user's current command line location, NOT the program folder
+# NOTE 2: By default (ie no extra sys.argv), the program will index images starting with 1,2,...
+#   The user can specify a starting index by passing an additional argument to the command line
+#   ie "rosrun opencv_work fisheye_img_cap.py 24" would start indexing at 24, so the output images
+#   would be titled "frame24.jpg", "frame25.jpg",... etc
+
 import cv2
 import rospy
 import sys
@@ -13,7 +27,11 @@ def img_cap():
 
     # start video stream with webcam
     vs = cv2.VideoCapture(1)
-    ind = 1
+    ind = 1 if not sys.argv[1] else int(sys.argv[1])
+
+    print ('Press <c> in the "frame" to capture a single image.' + '\n' +
+           'Press <s> in "frame" to start Continuous Shooting (ie one image captured every second).' + '\n' +
+           'Press <q> to exit program')
 
     while not rospy.is_shutdown():
 

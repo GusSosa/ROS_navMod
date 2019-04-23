@@ -2,9 +2,11 @@
 
 # fisheye.py
 # Program to determine the required K and D matrices for cv2.fisheye function,
-# using a collection of previously supplied checkerboard images,
+# using a collection of previously supplied checkerboard images captured from fisheye_img_cap.py,
 # and then undistort the web cam video using those matrices
 # Source: https://medium.com/@kennethjiang/calibrate-fisheye-lens-using-opencv-333b05afa0b0
+
+# NOTE: Calibration images must be in the same folder as the fisheye.py program
 
 import cv2
 import numpy as np
@@ -13,10 +15,15 @@ import glob
 import rospy
 import sys
 import random
+import imutils
 
+
+# checkerboard image dimensions per above reference
 CHECKERBOARD = (6, 9)
 DIM = (640, 480)
-VID = 0
+# video source: 0=laptop webcam,1=external usb camera
+VID = 1
+PIX_W = 1500
 
 
 def calibrate():
@@ -95,6 +102,8 @@ def undistort(K, D):
         dst = cv2.undistort(img, K, D, None, newcameramtx)
 
         # show before and after images
+        img = imutils.resize(img, width=PIX_W)
+        dst = imutils.resize(dst, width=PIX_W)
         cv2.imshow('distorted', img)
         cv2.imshow('undistorted', dst)
 
