@@ -158,13 +158,13 @@ def tracker_init():
 
     # resize the frame (so we can process it faster) and grab the
     # frame dimensions
-    frame1 = vs.read()[1]
-    frame1 = imutils.resize(frame1, width=PIX_W)
-    cv2.imshow('Homography Frame', frame1)
-    (Height, W) = frame1.shape[:2]
+    # frame1 = vs.read()[1]
+    # frame1 = imutils.resize(frame1, width=PIX_W)
+    # cv2.imshow('Homography Frame', frame1)
+    # (Height, W) = frame1.shape[:2]
 
     # blob detection and visual output of keypoints (ie red and blue dots)
-    blob_detection_data = blob_detection(detector, frame1)
+    # blob_detection_data = blob_detection(detector, frame1)
 
     # Calculate homography matrix
     # H = auto_homography(blob_detection_data)
@@ -389,19 +389,17 @@ def auto_homography(blob_detection_data):
 
     # Specify global points in the global frame (i.e. vertebra frame)
     # This assumes all 8 homography dots have been located,
-    # starting in bottom right corner (origin), with points alternating as follows:
-    # | - 8 |
-    # | 7 - |
-    # | - 6 |
+    # starting in bottom left corner (origin), with points alternating as follows:
+    # | - 7 |
+    # | 6 - |
     # | ... |
-    # | 1 - |
-    # | - 0 |
-    # center_dist_vert is the vertical distance between two consecutive points [in]
-    # center_dist_horz is the horizontal distance between the two vertical sets of points [in]
-    center_dist_vert = 2.5
-    center_dist_horz = 15
-    #global_pts = np.vstack((np.array([i * center_dist_vert for i in range(8)]), np.tile([0, 1], 4) * -center_dist_horz)).transpose()
-    global_pts = np.vstack((np.array([i * center_dist_vert for i in range(8)]), np.tile([0, 1], 4) * center_dist_horz)).transpose()
+    # | - 1 |
+    # | 0 - |
+    # center_dist_vert is the vertical distance between two consecutive points [cm]
+    # center_dist_horz is the horizontal distance between the two vertical sets of points [cm]
+    center_dist_vert = 7.62  # 3.0 inches
+    center_dist_horz = 55.88  # 22 inches
+    global_pts = np.vstack((np.tile([0, 1], 4) * center_dist_horz, np.array([i * center_dist_vert for i in range(8)]))).transpose()
 
     # Call homography function
     H = calculate_homography2.calc_H(uv, global_pts)
