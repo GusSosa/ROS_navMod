@@ -21,7 +21,10 @@ TOT_H_CLICKS = 4
 # Set desired frame width in pixels
 # PIX_W = 1500
 # Drew's laptop screen is 1600x900 so the above is too big.
-PIX_W = 1750
+PIX_W = 1500
+
+# Define number of expected points
+NUM_PT = 8
 
 
 def tracker_init():
@@ -36,11 +39,11 @@ def tracker_init():
     # params.maxThreshold = 200
     # Filter by Area.
     params.filterByArea = True
-    params.minArea = 500  # 1000 previously
+    params.minArea = 500  # NOTE: 750 for 1500W frame; 1500 for 3000W
     # params.maxArea = 2500
     # Filter by Circularity
     params.filterByCircularity = True
-    params.minCircularity = 0.85
+    params.minCircularity = 0.80  # 0.80 reguired for 3000W frame; 0.85 usable for 1500W
     # Filter by Convexity
     params.filterByConvexity = False
     params.minConvexity = 0.95
@@ -197,9 +200,11 @@ def tracker_init():
         # cv2.imshow('Red Keypoints', blob_detection_data['rim_with_keypoints'])
         cv2.imshow('Black Keypoints', blob_detection_data['blim_with_keypoints'])
         # cv2.imshow('Silver Keypoints', blob_detection_data['slim_with_keypoints'])
-        if abs(t2 - t1) > 2:
-            print(blob_detection_data['blcom'])
-            t1 = time.time()
+
+        # debugging: displays the pixel coordinates of the tracked black keypoints
+        # if abs(t2 - t1) > 2:
+        #     print(blob_detection_data['blcom'])
+        #     t1 = time.time()
 
         # initialize the set of information we'll be displaying on
         # the frame
@@ -243,6 +248,16 @@ def tracker_init():
         # auto homography testing
         # C2C distance between left most upper and second upper right holes should be ~56cm
         if key == ord('h'):
+
+            print 'Number of points found for homography: ' + str(len(blob_detection_data['blcom']))
+            if len(blob_detection_data['blcom']) < 8:
+                            # release webcam image
+                vs.release()
+                print('[ERROR: CORRECT NUMBER OF POINTS NOT FOUND]')
+
+                # close all windows and end program
+                cv2.destroyAllWindows()
+                sys.exit()
 
             cv2.destroyAllWindows()
             print('[START OF HOMOGRPAHY TEST]')
@@ -397,7 +412,8 @@ def auto_homography(blob_detection_data):
     # | 0 - |
     # center_dist_vert is the vertical distance between two consecutive points [cm]
     # center_dist_horz is the horizontal distance between the two vertical sets of points [cm]
-    center_dist_vert = 7.62  # 3.0 inches
+    # NOTE: Distance between consecutive points is 7.62/2 (ie 1.5 inches)
+    center_dist_vert = 3.81  # 1.5 inches
     center_dist_horz = 55.88  # 22 inches
     global_pts = np.vstack((np.tile([0, 1], 4) * center_dist_horz, np.array([i * center_dist_vert for i in range(8)]))).transpose()
 
