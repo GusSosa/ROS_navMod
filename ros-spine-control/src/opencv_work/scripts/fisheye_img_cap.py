@@ -29,6 +29,13 @@ def img_cap():
     vs = cv2.VideoCapture(1)
     ind = 1 if not sys.argv[1] else int(sys.argv[1])
 
+    # set reolution
+    print "Frame default resolution: (" + str(vs.get(cv2.CAP_PROP_FRAME_WIDTH)) + "; " + str(vs.get(cv2.CAP_PROP_FRAME_HEIGHT)) + ")"
+    vs.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+    vs.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+    print "Frame resolution set to: (" + str(vs.get(cv2.CAP_PROP_FRAME_WIDTH)) + "; " + str(vs.get(cv2.CAP_PROP_FRAME_HEIGHT)) + ")"
+    print "Frame FPS: " + str(vs.get(cv2.CAP_PROP_FPS))
+
     print ('Press <c> in the "frame" to capture a single image.' + '\n' +
            'Press <s> in "frame" to start Continuous Shooting (ie one image captured every second).' + '\n' +
            'Press <q> to exit program')

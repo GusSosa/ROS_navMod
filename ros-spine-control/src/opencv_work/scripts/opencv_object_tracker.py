@@ -22,7 +22,7 @@ TOT_H_CLICKS = 4
 # Set desired frame width in pixels
 # PIX_W = 1500
 # Drew's laptop screen is 1600x900 so the above is too big.
-PIX_W = 1500
+PIX_W = 2400
 
 # Define number of expected points
 NUM_PT = 8
@@ -61,8 +61,6 @@ def tracker_init():
     # initialize the bounding box coordinates of the object we are going
     # to track, and scale object
     pix_com = np.zeros((2, 2), dtype=np.float32)
-    # bkeypoints = None
-    # rkeypoints = None
 
     # fisheye calibration
     calibration_data = fisheye.calibrate()
@@ -71,111 +69,20 @@ def tracker_init():
     # grab the reference to the web cam
     # to use PC webcam, change src=0
     # to use connected USB camera, change src=1 or src=2...
-    print("[INFO] starting video stream...")
+    print("\n[INFO] starting video stream...")
     vs = cv2.VideoCapture(1)
 
-    # test
-    # des_fps = 60
-    # vs.set(cv2.CAP_PROP_FPS, des_fps)
+    # set reolution
+    print "Frame default resolution: (" + str(vs.get(cv2.CAP_PROP_FRAME_WIDTH)) + "; " + str(vs.get(cv2.CAP_PROP_FRAME_HEIGHT)) + ")"
+    vs.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+    vs.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+    print "Frame resolution set to: (" + str(vs.get(cv2.CAP_PROP_FRAME_WIDTH)) + "; " + str(vs.get(cv2.CAP_PROP_FRAME_HEIGHT)) + ")"
+    print "Frame FPS: " + str(vs.get(cv2.CAP_PROP_FPS))
 
     time.sleep(0.5)
 
     # initialize the FPS throughput estimator
     fps = FPS().start()
-
-    # # Get the homography for this run of the tracker.
-    # print("[INFO] Now calculating the homography.")
-    # # We'll store the clicked points for the homography in this array:
-    # h_pts = []
-    # # First, create a callback for mouse clicks. (Adapted from EE206A Lab 4)
-
-    # def on_mouse_click(event, x, y, flag, param):
-    #     # we'll only capture four clicks.
-    #     if len(h_pts) < TOT_H_CLICKS:
-    #         if(event == cv2.EVENT_LBUTTONUP):
-    #             point = (x, y)
-    #             print "Point Captured: " + str(point)
-    #             h_pts.append(point)
-
-    # # Get the positions of the clicks.
-    # # We want to wait until the user is ready to start.
-    # # A nifty way to do so is to have them type something into the terminal, then discard what was typed.
-    # raw_input("Please move out of the frame, then press enter to capture the frame that will be used for the homography.")
-    # print("Click four times to get the points for the homography.")
-    # # Next, get the four clicks. Read this frame:
-    # # grab the current frame, then handle if we are using a
-    # # VideoStream or VideoCapture object
-    # frame = vs.read()[1]
-
-    # # resize and show the newly-captured frame
-    # frame = imutils.resize(frame, width=PIX_W)
-    # cv2.imshow("Frame", frame)
-
-    # # Tell OpenCV that it should call 'on_mouse_click' when the user
-    # # clicks the window. This will add clicked points to our list
-    # cv2.setMouseCallback("Frame", on_mouse_click, param=1)
-    # # Finally, loop until we've got enough clicks. Just a blocking wait.
-    # while len(h_pts) < TOT_H_CLICKS:
-    #     if rospy.is_shutdown():
-    #         raise KeyboardInterrupt
-    #     # just block
-    #     cv2.waitKey(10)
-    # # We should now have four elements in the h_pts array now.
-    # print("Captured points for the homography:")
-    # print(h_pts)
-    # # Convert the Python list of points to a NumPy array of the form
-    # #   | u1 u2 u3 u4 |
-    # #   | v1 v2 v3 v4 |
-    # uv = np.array(h_pts).T
-
-    # # Specify the points in the global frame, i.e. the frame of the vertebra.
-    # # Assume the points go (bottom left, top left, top right, bottom right)
-    # # and that the origin is at the bottom left.
-    # global_pts = np.ndarray((4, 2))
-
-    # print global_pts
-    # # On 2018-12-5, the blue tape on the test setup was 16 squares of 2cm each,
-    # # so that's 32 cm along each edge.
-    # edge = 32
-    # # the coordinates are then,
-    # # for points 0 to 4 in the world frame,
-    # global_pts[0, :] = [0, 0]
-    # global_pts[1, :] = [0, edge]
-    # global_pts[2, :] = [edge, edge]
-    # global_pts[3, :] = [edge, 0]
-
-    # # and can now call the function itself.
-    # # as of 2018-12-5, uv is 2x4 but global_pts is 4x2. STANDARDIZE THIS.
-    # H = calculate_homography.calc_H(uv, global_pts)
-    # print("Calculated homography is:")
-    # print(H)
-
-    # # close the current window before proceeding.
-    # cv2.destroyWindow("Frame")
-
-    # # Testing:
-    # # calculate the distance between two points in the local frame.
-    # calculate_homography.test_H(H, vs)
-
-    # # Back to the rest of the script.
-    # print('Press <S> in the "Frame" window to select ROI of first object')
-
-    # We want to wait until the user is ready to start.
-    # A nifty way to do so is to have them type something into the terminal, then discard what was typed.
-    # raw_input("Please move out of the frame, then press enter to capture the frame that will be used for the homography.")
-
-    # resize the frame (so we can process it faster) and grab the
-    # frame dimensions
-    # frame1 = vs.read()[1]
-    # frame1 = imutils.resize(frame1, width=PIX_W)
-    # cv2.imshow('Homography Frame', frame1)
-    # (Height, W) = frame1.shape[:2]
-
-    # blob detection and visual output of keypoints (ie red and blue dots)
-    # blob_detection_data = blob_detection(detector, frame1)
-
-    # Calculate homography matrix
-    # H = auto_homography(blob_detection_data)
 
     # We can now start tracking
     print("Press <T> in any window to start tracking")
@@ -183,7 +90,6 @@ def tracker_init():
 
     # loop over frames from the video stream
     while not rospy.is_shutdown():
-        t2 = time.time()
 
         # grab the current frame, then handle if we are using a
         # VideoStream or VideoCapture object
@@ -198,24 +104,19 @@ def tracker_init():
 
         # resize the frame (so we can process it faster) and grab the
         # frame dimensions
-        frame = imutils.resize(frame, width=PIX_W)
+        # frame = imutils.resize(frame, width=PIX_W)
         dst = imutils.resize(dst, width=PIX_W)
         (Height, W) = frame.shape[:2]
 
         # blob detection and visual output of keypoints (ie red and blue dots)
         blob_detection_data = blob_detection(detector, dst)
         pix_com = blob_detection_data['pix_com']
-        # cv2.imshow('Blue Keypoints', blob_detection_data['bim_with_keypoints'])
-        # cv2.imshow('Red Keypoints', blob_detection_data['rim_with_keypoints'])
+        # # cv2.imshow('Blue Keypoints', blob_detection_data['bim_with_keypoints'])
+        # # cv2.imshow('Red Keypoints', blob_detection_data['rim_with_keypoints'])
         cv2.imshow('Black Keypoints', blob_detection_data['blim_with_keypoints'])
         cv2.imshow('original', frame)
         cv2.imshow('undistorted', dst)
         # cv2.imshow('Silver Keypoints', blob_detection_data['slim_with_keypoints'])
-
-        # debugging: displays the pixel coordinates of the tracked black keypoints
-        # if abs(t2 - t1) > 2:
-        #     print(blob_detection_data['blcom'])
-        #     t1 = time.time()
 
         # initialize the set of information we'll be displaying on
         # the frame
@@ -260,7 +161,7 @@ def tracker_init():
         # C2C distance between left most upper and second upper right holes should be ~56cm
         if key == ord('h'):
 
-            print 'Number of points found for homography: ' + str(len(blob_detection_data['blcom']))
+            print '\n' + 'Number of points found for homography: ' + str(len(blob_detection_data['blcom']))
             if len(blob_detection_data['blcom']) < 8:
                             # release webcam image
                 vs.release()
@@ -368,7 +269,7 @@ def blob_detection(detector, frame):
     # Median blur to smooth edges and output image
     bmedian = cv2.medianBlur(blue_mask, 11)
     rmedian = cv2.medianBlur(red_mask, 11)
-    blmedian = cv2.medianBlur(black_mask, 5)  # 2019_04.15 note: original value of 11; 5 works well for smaller homography dots
+    blmedian = cv2.medianBlur(black_mask, 11)  # 2019_04.15 note: 5 works well for smaller homography dots/lower resolution
     smedian = cv2.medianBlur(silver_mask, 3)
 
     # Otsu's thresholding after Gaussian filtering

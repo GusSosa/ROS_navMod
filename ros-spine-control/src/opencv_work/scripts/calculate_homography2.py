@@ -15,7 +15,7 @@ import imutils
 import fisheye
 
 # Set desired frame width in pixels
-PIX_W = 1500
+PIX_W = 2400
 
 
 def calc_H(uv, xy):

@@ -74,7 +74,6 @@ def calibrate():
     print("DIM=" + str(_img_shape[::-1]))
     print("K = np.array(" + str(K.tolist()) + ")")
     print("D = np.array(" + str(D.tolist()) + ")")
-    print('[CALIBRATION COMPLETE]')
 
     mean_error = 0
     for i in xrange(len(objpoints)):
@@ -82,42 +81,46 @@ def calibrate():
         error = cv2.norm(imgpoints[i], imgpoints2, cv2.NORM_L2) / len(imgpoints2)
         mean_error += error
     print("total error: {}".format(mean_error / len(objpoints)))
+    print('[CALIBRATION COMPLETE]')
 
     return{'D': D, 'K': K}
 
 
-def undistort(K, D):
+def undistort(K, D, frame):
 
-    vs = cv2.VideoCapture(VID)
+    # # TESTING: taken out when integrated into main tracking program
+    # vs = cv2.VideoCapture(VID)
 
-    while not rospy.is_shutdown():
+    # while not rospy.is_shutdown():
 
-        # read current web cam frame
-        img = vs.read()[1]
-        h, w = img.shape[:2]
+        # # TESTING: read current web cam frame
+        # img = vs.read()[1]
 
-        newcameramtx, roi = cv2.getOptimalNewCameraMatrix(K, D, (w, h), 1, (w, h))
+    h, w = frame.shape[:2]
+    newcameramtx, roi = cv2.getOptimalNewCameraMatrix(K, D, (w, h), 1, (w, h))
 
-        # undistort
-        dst = cv2.undistort(img, K, D, None, newcameramtx)
+    # undistort
+    dst = cv2.undistort(frame, K, D, None, newcameramtx)
 
-        # show before and after images
-        img = imutils.resize(img, width=PIX_W)
-        dst = imutils.resize(dst, width=PIX_W)
-        cv2.imshow('distorted', img)
-        cv2.imshow('undistorted', dst)
+    # #TESTING: show before and after images
+    # img = imutils.resize(img, width=PIX_W)
+    # dst = imutils.resize(dst, width=PIX_W)
+    # cv2.imshow('distorted', img)
+    # cv2.imshow('undistorted', dst)
 
-        # reset keyboard interrupt
-        key = cv2.waitKey(1) & 0xFF
+    # # TESTING: reset keyboard interrupt
+    # key = cv2.waitKey(1) & 0xFF
 
-        # if the "q" key is pressed, quit the program
-        if key == ord("q"):
+    # TESTING: if the "q" key is pressed, quit the program
+    # if key == ord("q"):
 
-            # close all windows and end program
-            vs.release()
-            cv2.destroyAllWindows()
-            print('[PROGRAM END]')
-            sys.exit()
+    #         # close all windows and end program
+    #     vs.release()
+    #     cv2.destroyAllWindows()
+    #     print('[PROGRAM END]')
+    #     sys.exit()
+
+    return(dst)
 
 
 def test(K, D):
