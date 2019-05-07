@@ -12,6 +12,7 @@ from numpy.linalg import *
 import cv2
 import rospy
 import imutils
+import fisheye
 
 # Set desired frame width in pixels
 PIX_W = 1500
@@ -19,8 +20,8 @@ PIX_W = 1500
 
 def calc_H(uv, xy):
 
-    print 'uv: ' + str(uv)
-    print 'xy: ' + str(xy)
+    # print 'uv: ' + str(uv)
+    # print 'xy: ' + str(xy)
     # print type(uv)
     num_pts = np.size(uv, 0)
     # print num_pts
@@ -66,8 +67,8 @@ def calc_H(uv, xy):
         # raw_input('break')
 
     # Find homography vector, h, by using least squares minimization
-    print 'A: ' + str(np.int64(A))
-    print 'b: ' + str(b)
+    # print 'A: ' + str(np.int64(A))
+    # print 'b: ' + str(b)
     # Ainv = np.linalg.inv(A)
     # h = np.dot(Ainv, b)
     h = np.linalg.lstsq(A, b, rcond=None)[0]
@@ -84,7 +85,7 @@ def calc_H(uv, xy):
     return(H)
 
 
-def test_H(H, vs):
+def test_H(H, vs, K, D):
     # Inputs: H = homography matrix, np ndarray 3x3, vs = VideoStream from cv2.
     # a quick function to test out the homography.
     # Like in 206A, we'll test the distance between two representative points.
@@ -114,10 +115,14 @@ def test_H(H, vs):
     # VideoStream or VideoCapture object
     # resize the frame (better viewing, consistent with object tracker.
     frame = vs.read()[1]
+
+    # undistort fisheye
+    dst = fisheye.undistort(K, D, frame)
     frame = imutils.resize(frame, width=PIX_W)
+    dst = imutils.resize(dst, width=PIX_W)
 
     # show the newly-captured frame
-    cv2.imshow("FrameForTesting", frame)
+    cv2.imshow("FrameForTesting", dst)
 
     # Tell OpenCV that it should call 'on_mouse_click' when the user
     # clicks the window. This will add clicked points to our list
@@ -139,7 +144,7 @@ def test_H(H, vs):
     uv = np.array(test_pts).T
 
     # Invert H
-    print(H)
+    # print(H)
     Q = np.linalg.inv(H)
 
     # Then, the x, y points in the world frame.
@@ -169,17 +174,17 @@ def test_H(H, vs):
     rtest = testobj[:, 0] - testobj[:, 1]
     disttest = np.linalg.norm(rtest, 2)
 
-    print 'xy: ' + str(xy)
-    print 'xy_1: ' + str(xy[:, 0])
-    print 'xy_2: ' + str(xy[:, 1])
-    print 'r: ' + str(r)
-    print 'testobj: ' + str(testobj)
-    print 'rtest: ' + str(rtest)
-    print 'disttest: ' + str(disttest)
+    # print 'xy: ' + str(xy)
+    # print 'xy_1: ' + str(xy[:, 0])
+    # print 'xy_2: ' + str(xy[:, 1])
+    # print 'r: ' + str(r)
+    # print 'testobj: ' + str(testobj)
+    # print 'rtest: ' + str(rtest)
+    # print 'disttest: ' + str(disttest)
 
     # the distance is the norm of the net vector
     dist = np.linalg.norm(r, 2)
-    print dist
+    # print dist
     print '\n' + 'Distance between your two points, in cm: ' + str(disttest)
 
     # close the window.

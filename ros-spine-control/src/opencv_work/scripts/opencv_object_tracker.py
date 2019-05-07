@@ -13,6 +13,7 @@ import imutils
 import math
 import rospy
 import calculate_homography2
+import fisheye
 
 
 # Define the total number of expected clicks for the homography.
@@ -62,6 +63,10 @@ def tracker_init():
     pix_com = np.zeros((2, 2), dtype=np.float32)
     # bkeypoints = None
     # rkeypoints = None
+
+    # fisheye calibration
+    calibration_data = fisheye.calibrate()
+    [K, D] = [calibration_data['K'], calibration_data['D']]
 
     # grab the reference to the web cam
     # to use PC webcam, change src=0
@@ -184,6 +189,9 @@ def tracker_init():
         # VideoStream or VideoCapture object
         frame = vs.read()[1]
 
+        # undistort fisheye
+        dst = fisheye.undistort(K, D, frame)
+
         # update the FPS counter
         fps.update()
         fps.stop()
@@ -191,14 +199,17 @@ def tracker_init():
         # resize the frame (so we can process it faster) and grab the
         # frame dimensions
         frame = imutils.resize(frame, width=PIX_W)
+        dst = imutils.resize(dst, width=PIX_W)
         (Height, W) = frame.shape[:2]
 
         # blob detection and visual output of keypoints (ie red and blue dots)
-        blob_detection_data = blob_detection(detector, frame)
+        blob_detection_data = blob_detection(detector, dst)
         pix_com = blob_detection_data['pix_com']
         # cv2.imshow('Blue Keypoints', blob_detection_data['bim_with_keypoints'])
         # cv2.imshow('Red Keypoints', blob_detection_data['rim_with_keypoints'])
         cv2.imshow('Black Keypoints', blob_detection_data['blim_with_keypoints'])
+        cv2.imshow('original', frame)
+        cv2.imshow('undistorted', dst)
         # cv2.imshow('Silver Keypoints', blob_detection_data['slim_with_keypoints'])
 
         # debugging: displays the pixel coordinates of the tracked black keypoints
@@ -267,7 +278,7 @@ def tracker_init():
 
             # Testing:
             # calculate the distance between two points in the local frame.
-            calculate_homography2.test_H(H, vs)
+            calculate_homography2.test_H(H, vs, K, D)
 
             # release webcam image
             vs.release()
