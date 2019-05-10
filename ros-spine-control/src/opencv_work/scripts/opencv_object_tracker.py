@@ -14,6 +14,7 @@ import math
 import rospy
 import calculate_homography2
 import fisheye
+import os
 
 
 # Define the total number of expected clicks for the homography.
@@ -40,7 +41,7 @@ def tracker_init():
     # params.maxThreshold = 200
     # Filter by Area.
     params.filterByArea = True
-    params.minArea = 500  # NOTE: 750 for 1500W frame; 1500 for 3000W
+    params.minArea = 750  # NOTE: 750 for 1500W frame; 1500 for 3000W
     # params.maxArea = 2500
     # Filter by Circularity
     params.filterByCircularity = True
@@ -63,8 +64,13 @@ def tracker_init():
     pix_com = np.zeros((2, 2), dtype=np.float32)
 
     # fisheye calibration
-    calibration_data = fisheye.calibrate()
-    [K, D] = [calibration_data['K'], calibration_data['D']]
+    try:  # check if K, D calibration arrays already exist in the current directory
+        K, D = np.load(os.path.dirname(os.path.abspath(__file__)) + '/calibration_data.npy')
+        print '[IMPORTING CALIBRATION DATA]'
+    except:  # if not, calibrate using the new images and save them as .npy file
+        calibration_data = fisheye.calibrate()
+        [K, D] = [calibration_data['K'], calibration_data['D']]
+        np.save(os.path.dirname(os.path.abspath(__file__)) + '/calibration_data', np.array([K, D]))
 
     # grab the reference to the web cam
     # to use PC webcam, change src=0
@@ -79,10 +85,8 @@ def tracker_init():
     print "Frame resolution set to: (" + str(vs.get(cv2.CAP_PROP_FRAME_WIDTH)) + "; " + str(vs.get(cv2.CAP_PROP_FRAME_HEIGHT)) + ")"
     print "Frame FPS: " + str(vs.get(cv2.CAP_PROP_FPS))
 
+    # delay to reduce overexposure
     time.sleep(0.5)
-
-    # initialize the FPS throughput estimator
-    fps = FPS().start()
 
     # We can now start tracking
     print("Press <T> in any window to start tracking")
@@ -98,15 +102,11 @@ def tracker_init():
         # undistort fisheye
         dst = fisheye.undistort(K, D, frame)
 
-        # update the FPS counter
-        fps.update()
-        fps.stop()
-
         # resize the frame (so we can process it faster) and grab the
         # frame dimensions
         # frame = imutils.resize(frame, width=PIX_W)
         dst = imutils.resize(dst, width=PIX_W)
-        (Height, W) = frame.shape[:2]
+        (Height, W) = dst.shape[:2]
 
         # blob detection and visual output of keypoints (ie red and blue dots)
         blob_detection_data = blob_detection(detector, dst)
@@ -123,14 +123,14 @@ def tracker_init():
         info = [
             ("Tracker", "Blob Detection"),
             ("Success", "Yes" if pix_com.any() else "No"),
-            ("FPS", "{:.2f}".format(fps.fps())),
+            ("FPS", str(vs.get(cv2.CAP_PROP_FPS))),
         ]
 
         # loop over the info tuples and draw them on our frame
         for (i, (k, v)) in enumerate(info):
             text = "{}: {}".format(k, v)
-            cv2.putText(frame, text, (10, Height - ((i * 20) + 20)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+            cv2.putText(dst, text, (10, Height - ((i * 20) + 20)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 240, (0, 0, 255), 204)
 
         # cv2.imshow('frame', frame)
 
