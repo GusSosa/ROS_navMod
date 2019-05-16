@@ -69,7 +69,7 @@ def talker():
                 # print 'angle dif: ' + str(np.degrees(angle))
 
                 # publish data
-                message = SpineState(rotation=angle, comx=float(origin[0, 0][0]), comy=float(origin[0, 1][0]))
+                message = SpineState(rotation=np.degrees(angle), comx=float(origin[0, 0][0]), comy=float(origin[0, 1][0]))
                 pub.publish(message)
                 rate.sleep()
 

@@ -15,6 +15,7 @@ from datetime import datetime
 import numpy as np
 from opencv_work.msg import SpineState
 
+
 class CVDataLogger:
 
     # Some functions to calculate timestamps/
@@ -25,7 +26,7 @@ class CVDataLogger:
     def get_time_since_midnight(self):
         # get the current time (clock ticks of computer)
         now = datetime.now()
-        # subtract from midnight. Midnight is 
+        # subtract from midnight. Midnight is
         midnight = now.replace(hour=0, minute=0, second=0, microsecond=0)
         # total microseconds, according to system clock, since midnight.
         # Is a float.
@@ -55,14 +56,14 @@ class CVDataLogger:
         # print(data.com2)
         # rotation_angle = data.data[4]
         # pos_data = data.data[0:4].reshape((2, 2))
-        print('Position Data: \n' + str(data.com1) + '\n' + str(data.com2) + '\n' + 'Rotation Angle: \n' + str(data.rotation) + '\n')
+        print('Position Data: \n' + str(data.comx) + '\n' + str(data.comy) + '\n' + 'Rotation Angle: \n' + str(data.rotation) + '\n')
         # Open the file, append mode, and binary open so we can use savetxt
         f = open(self.filename, 'ab')
         # Construct a comma-separated row to save.
         # Should be timestamp, CoM X, CoM Y, Rotation
         # The CoM is assumed to be the first region of interest, CoM 1, which has two elements.
-        row = str(self.get_time_since_midnight()) + "," + str(data.com1[0]) + "," \
-                  + str(data.com1[1]) + "," + str(data.rotation) + "\n"
+        row = str(self.get_time_since_midnight()) + "," + str(data.comx) + "," \
+            + str(data.comy) + "," + str(data.rotation) + "\n"
         # write the file. It may have been easier to use np.savetxt but whatever
         f.write(row)
         f.close()
@@ -85,11 +86,12 @@ class CVDataLogger:
         f.close()
         return filename
 
-    # the constructor initializes everything. 
+    # the constructor initializes everything.
     # Here is where the file handle is created.
     def __init__(self, topic_name, file_folder):
         # Save a reference to the file name so the callback can append new data.
         self.filename = self.datalogger_startup(topic_name, file_folder)
+
 
 # the main function: create one of these objects, while parsing the file path
 # Arguments: topic_name = name of topic (cv_data for now)
@@ -103,4 +105,3 @@ if __name__ == '__main__':
     except KeyboardInterrupt:
         print("Stopping data collection.\n")
         pass
-

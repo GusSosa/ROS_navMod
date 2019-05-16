@@ -15,7 +15,7 @@ import imutils
 import fisheye
 
 # Set desired frame width in pixels
-PIX_W = 2400
+PIX_W = 1200
 
 
 def calc_H(uv, xy):
@@ -33,6 +33,15 @@ def calc_H(uv, xy):
     b = np.zeros((2 * num_pts, 1))
     h = np.zeros((8, 1))
 
+    P = np.zeros((2 * num_pts + 1, 9))
+    P[2 * num_pts, 8] = 1
+    P2 = np.zeros((2 * num_pts + 1, 9))
+    P2[2 * num_pts, 8] = 1
+    # print P
+    b2 = np.zeros((2 * num_pts + 1, 1))
+    b2[2 * num_pts, 0] = 1
+    # print b2
+
     # print 'A init: ' + str(A)
     # print np.size(A, 0)
     # print 'b init: ' + str(b)
@@ -45,6 +54,13 @@ def calc_H(uv, xy):
         A[i * 2 + 1, :] = [0, 0, 0, xy[i, 0], xy[i, 1], 1, -uv[i, 1] * xy[i, 0], -uv[i, 1] * xy[i, 1]]
         b[i * 2, 0] = uv[i, 0]
         b[i * 2 + 1, 0] = uv[i, 1]
+
+        # 2019-05-15 update: solving PH = 0
+        P[i * 2, :] = [-uv[i, 0], -uv[i, 1], -1, 0, 0, 0, xy[i, 0] * uv[i, 0], xy[i, 1] * uv[i, 0], uv[i, 0]]
+        P[i * 2 + 1, :] = [0, 0, 0, -uv[i, 0], -uv[i, 1], -1, xy[i, 0] * uv[i, 1], xy[i, 1] * uv[i, 1], uv[i, 1]]
+
+        P2[i * 2, :] = [-xy[i, 0], -xy[i, 1], -1, 0, 0, 0, uv[i, 0] * xy[i, 0], uv[i, 1] * xy[i, 0], xy[i, 0]]
+        P2[i * 2 + 1, :] = [0, 0, 0, -xy[i, 0], -xy[i, 1], -1, uv[i, 0] * xy[i, 1], uv[i, 1] * xy[i, 1], xy[i, 1]]
 
         # # debugging
         # print 'A: ' + str(A)
@@ -72,7 +88,8 @@ def calc_H(uv, xy):
     # Ainv = np.linalg.inv(A)
     # h = np.dot(Ainv, b)
     h = np.linalg.lstsq(A, b, rcond=None)[0]
-    # print 'h: ' + str(h)
+    # h2 = np.linalg.lstsq(P, b2, rcond=None)[0]
+    # h3 = np.linalg.lstsq(P2, b2, rcond=None)[0]
 
     # h is of the form [h11, h12, h13, h21, h22, h23, h31, h32]
     # but each element is its own one-element array,
@@ -80,6 +97,16 @@ def calc_H(uv, xy):
     H = np.array([[h[0, 0], h[1, 0], h[2, 0]],
                   [h[3, 0], h[4, 0], h[5, 0]],
                   [h[6, 0], h[7, 0], 1]])
+    # H2 = np.array([[h2[0, 0], h2[1, 0], h2[2, 0]],
+    #                [h2[3, 0], h2[4, 0], h2[5, 0]],
+    #                [h2[6, 0], h2[7, 0], h2[8, 0]]])
+    # H3 = np.array([[h3[0, 0], h3[1, 0], h3[2, 0]],
+    #                [h3[3, 0], h3[4, 0], h3[5, 0]],
+    #                [h3[6, 0], h3[7, 0], h3[8, 0]]])
+
+    # print 'H: ' + str(H)
+    # print 'H2: ' + str(H2)
+    # print 'H3: ' + str(H3)
 
     # print(H)
     return(H)
