@@ -25,33 +25,34 @@ TOT_H_CLICKS = 4
 # Drew's laptop screen is 1600x900 so the above is too big.
 PIX_W = 2400
 
-# Define number of expected points
-NUM_PT = 8
+# Define number of expected homography dots
+NUM_PT = 10
 
 
 def tracker_init():
 
     # Setup SimpleBlobDetector parameters and set desired
-    # blob properties
+    # # blob properties
     params = cv2.SimpleBlobDetector_Params()
     # Change thresholds
-    params.filterByColor = False  # True previously
+    params.filterByColor = True  # True previously
     params.blobColor = 255
     # params.minThreshold = 10
     # params.maxThreshold = 200
     # Filter by Area.
     params.filterByArea = True
-    params.minArea = 750  # NOTE: 750 for 1500W frame; 1500 for 3000W
+    params.minArea = 1000  # NOTE: 750 for 1500W frame; 1500 for 3000W
     # params.maxArea = 2500
     # Filter by Circularity
     params.filterByCircularity = True
-    params.minCircularity = 0.80  # 0.80 reguired for 3000W frame; 0.85 usable for 1500W
+    params.minCircularity = 0.70  # 0.80 reguired for 3000W frame; 0.85 usable for 1500W
     # Filter by Convexity
     params.filterByConvexity = False
     params.minConvexity = 0.95
     # Filter by Inertia
     params.filterByInertia = False
     params.minInertiaRatio = 0.15
+
     # Create a detector with the parameters
     ver = (cv2.__version__).split('.')
     if int(ver[0]) < 3:
@@ -78,7 +79,7 @@ def tracker_init():
     print("\n[INFO] starting video stream...")
     vs = cv2.VideoCapture(1)
 
-    # set reolution
+    # set webcam resolution
     print "Frame default resolution: (" + str(vs.get(cv2.CAP_PROP_FRAME_WIDTH)) + "; " + str(vs.get(cv2.CAP_PROP_FRAME_HEIGHT)) + ")"
     vs.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
     vs.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
@@ -87,6 +88,7 @@ def tracker_init():
 
     # delay to reduce overexposure
     time.sleep(0.5)
+    key = None
 
     # We can now start tracking
     print("Press <T> in any window to start tracking")
@@ -102,43 +104,24 @@ def tracker_init():
         # undistort fisheye
         dst = fisheye.undistort(K, D, frame)
 
-        # resize the frame (so we can process it faster) and grab the
-        # frame dimensions
-        # frame = imutils.resize(frame, width=PIX_W)
+        # resize the frame and grab the frame dimensions
         dst = imutils.resize(dst, width=PIX_W)
         (Height, W) = dst.shape[:2]
 
         # blob detection and visual output of keypoints (ie red and blue dots)
         blob_detection_data = blob_detection(detector, dst)
         pix_com = blob_detection_data['pix_com']
-        # # cv2.imshow('Blue Keypoints', blob_detection_data['bim_with_keypoints'])
-        # # cv2.imshow('Red Keypoints', blob_detection_data['rim_with_keypoints'])
+        cv2.imshow('Blue Keypoints', blob_detection_data['bim_with_keypoints'])
+        # cv2.imshow('Red Keypoints', blob_detection_data['rim_with_keypoints'])
         cv2.imshow('Black Keypoints', blob_detection_data['blim_with_keypoints'])
-        cv2.imshow('original', frame)
-        cv2.imshow('undistorted', dst)
-        # cv2.imshow('Silver Keypoints', blob_detection_data['slim_with_keypoints'])
+        # cv2.imshow('original', frame)
+        # cv2.imshow('undistorted', dst)
 
-        # initialize the set of information we'll be displaying on
-        # the frame
-        info = [
-            ("Tracker", "Blob Detection"),
-            ("Success", "Yes" if pix_com.any() else "No"),
-            ("FPS", str(vs.get(cv2.CAP_PROP_FPS))),
-        ]
-
-        # loop over the info tuples and draw them on our frame
-        for (i, (k, v)) in enumerate(info):
-            text = "{}: {}".format(k, v)
-            cv2.putText(dst, text, (10, Height - ((i * 20) + 20)),
-                        cv2.FONT_HERSHEY_SIMPLEX, 240, (0, 0, 255), 204)
-
-        # cv2.imshow('frame', frame)
-
-        # reset keyboar interrupt
-        key = cv2.waitKey(1) & 0xFF
+        # reset keyboard interrupt
+        key = (cv2.waitKey(1) & 0xFF) if key != ord('t') else key
 
         # if the "q" key is pressed, quit the program
-        if key == ord("q"):
+        if key == ord('q'):
 
             # release webcam image
             vs.release()
@@ -151,87 +134,63 @@ def tracker_init():
         # if the 't' key is selected, we are going to start tracking
         if key == ord('t'):
 
-            print('[START OF TRACKING]' + '\n' + 'Press <Q> in any window to stop tracking')
-            # start the FPS estimator
-            fps = FPS().start()
+            # eight homography dots not detected
+            if len(blob_detection_data['blcom']) != NUM_PT:
+                # restart for loop to keep searching for eight dots
+                pass
 
-            break
-
-        # auto homography testing
-        # C2C distance between left most upper and second upper right holes should be ~56cm
-        if key == ord('h'):
-
-            print '\n' + 'Number of points found for homography: ' + str(len(blob_detection_data['blcom']))
-            if len(blob_detection_data['blcom']) < 8:
-                            # release webcam image
-                vs.release()
-                print('[ERROR: CORRECT NUMBER OF POINTS NOT FOUND]')
-
-                # close all windows and end program
+            # exactly eight dots found
+            else:
+                # Calculate homography matrix
+                H = auto_homography(blob_detection_data)
+                # Calculate the x-unit vector for world frame (ie the [1,0] vector for this frame),
+                # used to calculate the vertebra rotation.
+                # Uses the first homography dot (ie world frame origin) and the second to last dot,
+                # which is in line, directly above the first dot
+                # Note that the unit vector between these two should nominally be [0,1]
+                blcom = blob_detection_data['blcom']
+                Q = np.linalg.inv(H)  # calculate Q matrix for pixel- real world conversion
+                u1 = np.array(blcom[0, :])  # location of first homography dot (ie world frame origin) in pixel frame
+                u2 = np.array(blcom[NUM_PT - 2, :])  # location of dowel pin 2 in pixel frame
+                u1h = np.r_[np.transpose([u1]), np.array([[1]])]
+                u2h = np.r_[np.transpose([u2]), np.array([[1]])]
+                u1true = np.dot(Q, u1h)[0:2, :]  # location of first homography dot (ie world frame origin)
+                u2true = np.dot(Q, u2h)[0:2, :]  # location of second to last homography dot (in line with 1st)
+                umag = np.linalg.norm(u1true - u2true)  # magnitude of x-unit vector
+                uvec = np.flip((abs(u1true - u2true)) / umag)  # x-unit vector for world frame
+                # end initialization function and start tracking program
                 cv2.destroyAllWindows()
-                sys.exit()
+                print('\n[START OF TRACKING]' + '\n' + 'Press <Q> in any window to stop tracking')
+                break
 
-            cv2.destroyAllWindows()
-            print('[START OF HOMOGRPAHY TEST]')
-
-            # Calculate homography matrix
-            H = auto_homography(blob_detection_data)
-
-            # Testing:
-            # calculate the distance between two points in the local frame.
-            calculate_homography2.test_H(H, vs, K, D)
-
-            # release webcam image
-            vs.release()
-            print('[END OF TRACKING]')
-
-            # close all windows and end program
-            cv2.destroyAllWindows()
-            sys.exit()
-
-    return(detector, pix_com, vs, H, fps, key)
+    return(detector, vs, Q, uvec, K, D, key)
 
 
-def tracker_main(detector, pix_com, vs, fps):
+def tracker_main(detector, K, D, vs):
 
     # grab the current frame, then handle if we are using a
     # VideoStream or VideoCapture object
     frame = vs.read()[1]
 
-    # resize the frame (so we can process it faster) and grab the
-    # frame dimensions
-    frame = imutils.resize(frame, width=PIX_W)
-    (Height, W) = frame.shape[:2]
+    # undistort fisheye
+    dst = fisheye.undistort(K, D, frame)
 
-    # update the FPS counter
-    fps.update()
-    fps.stop()
-
-    info = [
-        ("Tracker", "Blob Detection"),
-        ("Success", "Yes" if pix_com.any() else "No"),
-        ("FPS", "{:.2f}".format(fps.fps())),
-    ]
-
-    # loop over the info tuples and draw them on our frame
-    for (i, (k, v)) in enumerate(info):
-        text = "{}: {}".format(k, v)
-        cv2.putText(frame, text, (10, Height - ((i * 20) + 20)),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+    # resize the frame and grab the frame dimensions
+    dst = imutils.resize(dst, width=PIX_W)
 
     # show the output frame
-    cv2.imshow("Frame", frame)
+    cv2.imshow("Frame", dst)
 
     # blob detection and visual output of keypoints (ie red and blue dots)
-    blob_detection_data = blob_detection(detector, frame)
+    blob_detection_data = blob_detection(detector, dst)
     pix_com = blob_detection_data['pix_com']
-    cv2.imshow('Blue Keypoints', blob_detection_data['bim_with_keypoints'])
-    cv2.imshow('Red Keypoints', blob_detection_data['rim_with_keypoints'])
+    # cv2.imshow('Blue Keypoints', blob_detection_data['bim_with_keypoints'])
+    # cv2.imshow('Red Keypoints', blob_detection_data['rim_with_keypoints'])
 
     # reset keyboard interrupt key
     key = cv2.waitKey(1) & 0xFF
 
-    return (pix_com, key)
+    return (blob_detection_data, key)
 
 
 def tracker_angle(com1, com2):
@@ -249,63 +208,58 @@ def blob_detection(detector, frame):
     hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     # define range of blue color in HSV
-    lower_blue = np.array([100, 50, 50])
+    lower_blue = np.array([100, 220, 50])
     upper_blue = np.array([120, 255, 255])
-    lower_red = np.array([160, 50, 50])
-    upper_red = np.array([180, 255, 255])
-    lower_black = np.array([0, 0, 10])
-    upper_black = np.array([180, 255, 110])
-    #lower_black = np.array([0, 0, 20])
-    #upper_black = np.array([180, 255, 60])
-    lower_silver = np.array([0, 0, 160])
-    upper_silver = np.array([180, 255, 240])
+    lower_red1 = np.array([0, 50, 50])
+    upper_red1 = np.array([10, 255, 255])
+    lower_red2 = np.array([170, 50, 50])
+    upper_red2 = np.array([180, 255, 255])
+    lower_black = np.array([0, 0, 0])
+    upper_black = np.array([255, 255, 40])
 
     # Threshold the HSV image to get only blue and red colors
     blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
-    red_mask = cv2.inRange(hsv, lower_red, upper_red)
+    red_mask1 = cv2.inRange(hsv, lower_red1, upper_red1)
+    red_mask2 = cv2.inRange(hsv, lower_red2, upper_red2)
+    red_mask = red_mask1 + red_mask2
     black_mask = cv2.inRange(hsv, lower_black, upper_black)
-    silver_mask = cv2.inRange(hsv, lower_silver, upper_silver)
 
     # Median blur to smooth edges and output image
-    bmedian = cv2.medianBlur(blue_mask, 11)
-    rmedian = cv2.medianBlur(red_mask, 11)
+    bmedian = cv2.medianBlur(blue_mask, 9)
+    rmedian = cv2.medianBlur(red_mask, 13)
     blmedian = cv2.medianBlur(black_mask, 11)  # 2019_04.15 note: 5 works well for smaller homography dots/lower resolution
-    smedian = cv2.medianBlur(silver_mask, 3)
 
-    # Otsu's thresholding after Gaussian filtering
-    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    blur = cv2.GaussianBlur(gray_frame, (5, 5), 0)
-    ret3, th3 = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    # # Otsu's thresholding after Gaussian filtering
+    # gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    # blur = cv2.GaussianBlur(gray_frame, (5, 5), 0)
+    # ret3, th3 = cv2.threshold(blur, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
     # Detect blobs.
     bkeypoints = detector.detect(bmedian)
     rkeypoints = detector.detect(rmedian)
     blkeypoints = detector.detect(blmedian)
-    skeypoints = detector.detect(smedian)
 
     # Draw detected blobs as red circles.
     # cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS ensures the size of the circle corresponds to the size of blob
     bim_with_keypoints = cv2.drawKeypoints(bmedian, bkeypoints, np.array([]), (0, 0, 255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
     rim_with_keypoints = cv2.drawKeypoints(rmedian, rkeypoints, np.array([]), (0, 0, 255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
     blim_with_keypoints = cv2.drawKeypoints(blmedian, blkeypoints, np.array([]), (0, 0, 255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
-    slim_with_keypoints = cv2.drawKeypoints(smedian, skeypoints, np.array([]), (0, 0, 255), cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
     # Finds center of mass of both red and blue dots in pixel values
     # and converts these float lists into integer numpy arrays
     bcom = np.array([int(i) for i in bkeypoints[0].pt]) if bkeypoints else np.array([0, 0])
     rcom = np.array([int(i) for i in rkeypoints[0].pt]) if rkeypoints else np.array([0, 0])
     blcom = np.array([blkeypoints[i].pt for i in range(int(len(blkeypoints)))]).astype(int)
-    scom = np.array([skeypoints[i].pt for i in range(int(len(skeypoints)))]).astype(int)
-    pix_com = np.array([bcom, rcom])
+    # pix_com = np.array([bcom, rcom])
+    pix_com = np.array([rcom, bcom])
 
     return {'pix_com': pix_com, 'bim_with_keypoints': bim_with_keypoints, 'rim_with_keypoints': rim_with_keypoints,
-            'blim_with_keypoints': blim_with_keypoints, 'slim_with_keypoints': slim_with_keypoints,
-            'blcom': blcom}
+            'blim_with_keypoints': blim_with_keypoints, 'blcom': blcom}
 
 
 def auto_homography(blob_detection_data):
 
-    print("[INFO] Now calculating the homography.")
+    print('\n[START OF HOMOGRAPHY CALCULATION]')
 
     # NOTE: blcom is pixel COM of the black dots in camera frame, of the form:
     # | x1 y1 |
@@ -327,7 +281,7 @@ def auto_homography(blob_detection_data):
     # NOTE: Distance between consecutive points is 7.62/2 (ie 1.5 inches)
     center_dist_vert = 3.81  # 1.5 inches
     center_dist_horz = 55.88  # 22 inches
-    global_pts = np.vstack((np.tile([0, 1], 4) * center_dist_horz, np.array([i * center_dist_vert for i in range(8)]))).transpose()
+    global_pts = np.vstack((np.tile([0, 1], NUM_PT / 2) * center_dist_horz, np.array([i * center_dist_vert for i in range(NUM_PT)]))).transpose()
 
     # Call homography function
     H = calculate_homography2.calc_H(uv, global_pts)

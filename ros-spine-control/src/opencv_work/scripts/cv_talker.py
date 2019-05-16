@@ -8,10 +8,10 @@
 
 import rospy
 import roslib
-from opencv_object_tracker import tracker_init, tracker_main, tracker_angle
+from opencv_object_tracker import tracker_init, tracker_main, auto_homography, tracker_angle
 import cv2
 import numpy as np
-from numpy.linalg import inv
+from numpy.linalg import inv, norm
 from opencv_work.msg import SpineState
 
 roslib.load_manifest('opencv_work')
@@ -24,37 +24,52 @@ def talker():
     # pub = rospy.Publisher('cv_data', numpy_msg(Floats), queue_size=10)
     pub = rospy.Publisher('cv_data', SpineState, queue_size=10)
     rate = rospy.Rate(100)  # 10hz
+    d1 = 0.82  # distance in cm between dowel pin 1 (leftmost) and the local vertebra origin, as of 2019-05-15
 
     while not rospy.is_shutdown():
 
         # wrap everything around a keyboard interrupt catcher
         try:
             # run initalization
-            (detector, pix_com, vs, H, fps, key) = tracker_init()
+            (detector, vs, Q, uvec, K, D, key) = tracker_init()
 
             # while still tracking
             while not key == ord("q"):
 
                 # run tracker
-                (pix_com_data, key) = tracker_main(detector, pix_com, vs, fps)
+                (blob_detection_data, key) = tracker_main(detector, K, D, vs)
+                pix_com_data = blob_detection_data['pix_com']
 
                 # calculate true COM points using homography matrix
-                pix_com_hom = np.append(pix_com_data, [[1, 1]], axis=0)
+                # pix_com_hom = np.append(pix_com_data, [[1, 1]], axis=0)
 
-                Q = np.linalg.inv(H)
-                pt1 = np.transpose(np.array([pix_com_data[0, :]]))
-                pt2 = np.transpose(np.array([pix_com_data[1, :]]))
-                pt1h = np.r_[pt1, np.array([[1]])]
-                pt2h = np.r_[pt2, np.array([[1]])]
-                pt1true = np.dot(Q, pt1h)[0:2, :]
-                pt2true = np.dot(Q, pt2h)[0:2, :]
+                pt1 = np.array(pix_com_data[0, :])  # location of dowel pin 1 in pixel frame
+                pt2 = np.array(pix_com_data[1, :])  # location of dowel pin 2 in pixel frame
+                pt1h = np.r_[np.transpose([pt1]), np.array([[1]])]
+                pt2h = np.r_[np.transpose([pt2]), np.array([[1]])]
+                pt1true = np.dot(Q, pt1h)[0:2, :]  # location of dowel pin 1 in global frame
+                pt2true = np.dot(Q, pt2h)[0:2, :]  # location of dowel pin 2 in global frame
+                mag = np.linalg.norm(pt1true - pt2true)
+                # print 'mag: ' + str(mag)
+                duvec = (pt2true - pt1true) / mag  # unit vector between dowel pin locations
+                origin = pt1true - np.transpose([duvec * d1])  # local vertebra origin
+                print 'origin: ' + str(origin[0][:, 0])
+                # print 'pt1true: ' + str(pt1true)
+                # print 'pt2true: ' + str(pt2true)
+                # print 'uvec: ' + str(uvec)
+                # print 'duvec actual: ' + str(duvec)
+                # print 'duvec: ' + str(np.array([duvec[:, 0]]))
+                angle = np.math.atan2(np.linalg.det([np.stack((uvec.reshape(1, 2)[0], duvec.reshape(1, 2)[0]))]),
+                                      np.dot(uvec.reshape(1, 2), duvec))  # angle of rotation about center
+                print 'angle: ' + str(np.degrees(angle))
                 # true_com = (np.dot(np.linalg.inv(H), pix_com_hom))[0:2, :]
 
                 # calculate angle of rotation of vertebrae
-                theta = tracker_angle(np.transpose(pt1true), np.transpose(pt2true))
+                # theta = tracker_angle(np.transpose(pt1true), np.transpose(pt2true))
 
                 # publish data
-                message = SpineState(rotation=theta, com1=pt1true, com2=pt2true)
+                # message = SpineState(rotation=theta, com1=pt1true, com2=pt2true)
+                message = SpineState(rotation=angle, com1=origin[0], com2=origin[1])
                 pub.publish(message)
                 rate.sleep()
 
