@@ -4,13 +4,11 @@
 # and the main tracking loop (tracking_main())
 
 # import the necessary packages
-from imutils.video import FPS
 import numpy as np
 import time
 import cv2
 import sys
 import imutils
-import math
 import rospy
 import calculate_homography2
 import fisheye
@@ -24,9 +22,20 @@ TOT_H_CLICKS = 4
 # PIX_W = 1500
 # Drew's laptop screen is 1600x900 so the above is too big.
 PIX_W = 2400
+PIX_W = 2400
 
 # Define number of expected homography dots
 NUM_PT = 10
+
+# define HSV color ranges for blob detector
+lower_blue = np.array([90, 200, 50])
+upper_blue = np.array([130, 255, 255])
+lower_red1 = np.array([0, 50, 50])
+upper_red1 = np.array([10, 255, 255])
+lower_red2 = np.array([170, 50, 50])
+upper_red2 = np.array([180, 255, 255])
+lower_black = np.array([0, 0, 0])
+upper_black = np.array([255, 255, 40])
 
 
 def tracker_init():
@@ -37,8 +46,6 @@ def tracker_init():
     # Change thresholds
     params.filterByColor = True  # True previously
     params.blobColor = 255
-    # params.minThreshold = 10
-    # params.maxThreshold = 200
     # Filter by Area.
     params.filterByArea = True
     params.minArea = 1000  # NOTE: 750 for 1500W frame; 1500 for 3000W
@@ -46,12 +53,6 @@ def tracker_init():
     # Filter by Circularity
     params.filterByCircularity = True
     params.minCircularity = 0.70  # 0.80 reguired for 3000W frame; 0.85 usable for 1500W
-    # Filter by Convexity
-    params.filterByConvexity = False
-    params.minConvexity = 0.95
-    # Filter by Inertia
-    params.filterByInertia = False
-    params.minInertiaRatio = 0.15
 
     # Create a detector with the parameters
     ver = (cv2.__version__).split('.')
@@ -60,15 +61,11 @@ def tracker_init():
     else:
         detector = cv2.SimpleBlobDetector_create(params)
 
-    # initialize the bounding box coordinates of the object we are going
-    # to track, and scale object
-    pix_com = np.zeros((2, 2), dtype=np.float32)
-
     # fisheye calibration
     try:  # check if K, D calibration arrays already exist in the current directory
         K, D = np.load(os.path.dirname(os.path.abspath(__file__)) + '/calibration_data.npy')
         print '[IMPORTING CALIBRATION DATA]'
-    except:  # if not, calibrate using the new images and save them as .npy file
+    except IOError:  # if file dooesn't exist, calibrate using the new images and save them as .npy file
         calibration_data = fisheye.calibrate()
         [K, D] = [calibration_data['K'], calibration_data['D']]
         np.save(os.path.dirname(os.path.abspath(__file__)) + '/calibration_data', np.array([K, D]))
@@ -81,18 +78,17 @@ def tracker_init():
 
     # set webcam resolution
     print "Frame default resolution: (" + str(vs.get(cv2.CAP_PROP_FRAME_WIDTH)) + "; " + str(vs.get(cv2.CAP_PROP_FRAME_HEIGHT)) + ")"
-    vs.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
-    vs.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
+    # vs.set(cv2.CAP_PROP_FRAME_WIDTH, 1920)
+    # vs.set(cv2.CAP_PROP_FRAME_HEIGHT, 1080)
     print "Frame resolution set to: (" + str(vs.get(cv2.CAP_PROP_FRAME_WIDTH)) + "; " + str(vs.get(cv2.CAP_PROP_FRAME_HEIGHT)) + ")"
     print "Frame FPS: " + str(vs.get(cv2.CAP_PROP_FPS))
 
-    # delay to reduce overexposure
+    # delay to reduce overexposure, initalize keyboard exception
     time.sleep(0.5)
     key = None
 
     # We can now start tracking
-    print("Press <T> in any window to start tracking")
-    t1 = time.time()
+    print('Press <T> in any window to start tracking')
 
     # loop over frames from the video stream
     while not rospy.is_shutdown():
@@ -110,14 +106,13 @@ def tracker_init():
 
         # blob detection and visual output of keypoints (ie red and blue dots)
         blob_detection_data = blob_detection(detector, dst)
-        pix_com = blob_detection_data['pix_com']
-        cv2.imshow('Blue Keypoints', blob_detection_data['bim_with_keypoints'])
-        # cv2.imshow('Red Keypoints', blob_detection_data['rim_with_keypoints'])
         cv2.imshow('Black Keypoints', blob_detection_data['blim_with_keypoints'])
+        # cv2.imshow('Blue Keypoints', blob_detection_data['bim_with_keypoints'])
+        # cv2.imshow('Red Keypoints', blob_detection_data['rim_with_keypoints'])
         # cv2.imshow('original', frame)
         # cv2.imshow('undistorted', dst)
 
-        # reset keyboard interrupt
+        # reset keyboard interrupt, unless the 't' key has been pressed
         key = (cv2.waitKey(1) & 0xFF) if key != ord('t') else key
 
         # if the "q" key is pressed, quit the program
@@ -136,7 +131,7 @@ def tracker_init():
 
             # eight homography dots not detected
             if len(blob_detection_data['blcom']) != NUM_PT:
-                # restart for loop to keep searching for eight dots
+                # restart whiel loop to keep searching for eight dots
                 pass
 
             # exactly eight dots found
@@ -154,8 +149,8 @@ def tracker_init():
                 u2 = np.array(blcom[NUM_PT - 2, :])  # location of dowel pin 2 in pixel frame
                 u1h = np.r_[np.transpose([u1]), np.array([[1]])]
                 u2h = np.r_[np.transpose([u2]), np.array([[1]])]
-                u1true = np.dot(Q, u1h)[0:2, :]  # location of first homography dot (ie world frame origin)
-                u2true = np.dot(Q, u2h)[0:2, :]  # location of second to last homography dot (in line with 1st)
+                u1true = np.dot(Q, u1h)[0:2, :] / np.dot(Q, u1h)[2, :]  # location of first homography dot (ie world frame origin)
+                u2true = np.dot(Q, u2h)[0:2, :] / np.dot(Q, u2h)[2, :]  # location of second to last homography dot (in line with 1st)
                 umag = np.linalg.norm(u1true - u2true)  # magnitude of x-unit vector
                 uvec = np.flip((abs(u1true - u2true)) / umag)  # x-unit vector for world frame
                 # end initialization function and start tracking program
@@ -166,26 +161,26 @@ def tracker_init():
     return(detector, vs, Q, uvec, K, D, key)
 
 
-def tracker_main(detector, K, D, vs):
+def tracker_main(detector, K, D, vs, originpix):
 
     # grab the current frame, then handle if we are using a
     # VideoStream or VideoCapture object
     frame = vs.read()[1]
-
     # undistort fisheye
     dst = fisheye.undistort(K, D, frame)
-
     # resize the frame and grab the frame dimensions
     dst = imutils.resize(dst, width=PIX_W)
 
-    # show the output frame
-    cv2.imshow("Frame", dst)
-
     # blob detection and visual output of keypoints (ie red and blue dots)
     blob_detection_data = blob_detection(detector, dst)
-    pix_com = blob_detection_data['pix_com']
     # cv2.imshow('Blue Keypoints', blob_detection_data['bim_with_keypoints'])
     # cv2.imshow('Red Keypoints', blob_detection_data['rim_with_keypoints'])
+
+    # show the output frame
+    if originpix is not None:
+        print tuple(originpix.reshape(1, -1)[0])
+        cv2.circle(dst, tuple(originpix.reshape(1, -1)[0]), 20, (0, 255, 255), -1)
+    cv2.imshow('Frame', dst)
 
     # reset keyboard interrupt key
     key = cv2.waitKey(1) & 0xFF
@@ -193,29 +188,10 @@ def tracker_main(detector, K, D, vs):
     return (blob_detection_data, key)
 
 
-def tracker_angle(com1, com2):
-
-    x = com1[0, 0] - com2[0, 0]
-    y = com1[0, 1] - com2[0, 1]
-    theta_deg = np.array(math.degrees(math.asin(y / x)), dtype=np.float32)
-
-    return theta_deg
-
-
-def blob_detection(detector, frame):
+def blob_detection(detector, dst):
 
     # Convert BGR to HSV
-    hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-
-    # define range of blue color in HSV
-    lower_blue = np.array([100, 220, 50])
-    upper_blue = np.array([120, 255, 255])
-    lower_red1 = np.array([0, 50, 50])
-    upper_red1 = np.array([10, 255, 255])
-    lower_red2 = np.array([170, 50, 50])
-    upper_red2 = np.array([180, 255, 255])
-    lower_black = np.array([0, 0, 0])
-    upper_black = np.array([255, 255, 40])
+    hsv = cv2.cvtColor(dst, cv2.COLOR_BGR2HSV)
 
     # Threshold the HSV image to get only blue and red colors
     blue_mask = cv2.inRange(hsv, lower_blue, upper_blue)
