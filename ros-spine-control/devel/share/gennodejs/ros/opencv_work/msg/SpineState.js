@@ -19,8 +19,8 @@ class SpineState {
     if (initObj === null) {
       // initObj === null is a special case for deserialization where we don't initialize fields
       this.rotation = null;
-      this.com1 = null;
-      this.com2 = null;
+      this.comy = null;
+      this.comx = null;
     }
     else {
       if (initObj.hasOwnProperty('rotation')) {
@@ -29,17 +29,17 @@ class SpineState {
       else {
         this.rotation = 0.0;
       }
-      if (initObj.hasOwnProperty('com1')) {
-        this.com1 = initObj.com1
+      if (initObj.hasOwnProperty('comy')) {
+        this.comy = initObj.comy
       }
       else {
-        this.com1 = [];
+        this.comy = 0.0;
       }
-      if (initObj.hasOwnProperty('com2')) {
-        this.com2 = initObj.com2
+      if (initObj.hasOwnProperty('comx')) {
+        this.comx = initObj.comx
       }
       else {
-        this.com2 = [];
+        this.comx = 0.0;
       }
     }
   }
@@ -48,10 +48,10 @@ class SpineState {
     // Serializes a message object of type SpineState
     // Serialize message field [rotation]
     bufferOffset = _serializer.float64(obj.rotation, buffer, bufferOffset);
-    // Serialize message field [com1]
-    bufferOffset = _arraySerializer.float64(obj.com1, buffer, bufferOffset, null);
-    // Serialize message field [com2]
-    bufferOffset = _arraySerializer.float64(obj.com2, buffer, bufferOffset, null);
+    // Serialize message field [comy]
+    bufferOffset = _serializer.float64(obj.comy, buffer, bufferOffset);
+    // Serialize message field [comx]
+    bufferOffset = _serializer.float64(obj.comx, buffer, bufferOffset);
     return bufferOffset;
   }
 
@@ -61,18 +61,15 @@ class SpineState {
     let data = new SpineState(null);
     // Deserialize message field [rotation]
     data.rotation = _deserializer.float64(buffer, bufferOffset);
-    // Deserialize message field [com1]
-    data.com1 = _arrayDeserializer.float64(buffer, bufferOffset, null)
-    // Deserialize message field [com2]
-    data.com2 = _arrayDeserializer.float64(buffer, bufferOffset, null)
+    // Deserialize message field [comy]
+    data.comy = _deserializer.float64(buffer, bufferOffset);
+    // Deserialize message field [comx]
+    data.comx = _deserializer.float64(buffer, bufferOffset);
     return data;
   }
 
   static getMessageSize(object) {
-    let length = 0;
-    length += 8 * object.com1.length;
-    length += 8 * object.com2.length;
-    return length + 16;
+    return 24;
   }
 
   static datatype() {
@@ -82,15 +79,16 @@ class SpineState {
 
   static md5sum() {
     //Returns md5sum for a message object
-    return '0c4ed841ebd6c1ed336e4b4bb0dbbca7';
+    return '362faa163ba6b21bd1aa0295e7ccf8ab';
   }
 
   static messageDefinition() {
     // Returns full string definition for message
     return `
     float64 rotation
-    float64[] com1
-    float64[] com2
+    float64 comy
+    float64 comx
+    
     `;
   }
 
@@ -107,18 +105,18 @@ class SpineState {
       resolved.rotation = 0.0
     }
 
-    if (msg.com1 !== undefined) {
-      resolved.com1 = msg.com1;
+    if (msg.comy !== undefined) {
+      resolved.comy = msg.comy;
     }
     else {
-      resolved.com1 = []
+      resolved.comy = 0.0
     }
 
-    if (msg.com2 !== undefined) {
-      resolved.com2 = msg.com2;
+    if (msg.comx !== undefined) {
+      resolved.comx = msg.comx;
     }
     else {
-      resolved.com2 = []
+      resolved.comx = 0.0
     }
 
     return resolved;

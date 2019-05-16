@@ -8,7 +8,8 @@ import rospy
 from opencv_work.msg import SpineState
 
 # This apparently isn't needed when we use catkin.
-#roslib.load_manifest('opencv_work')
+# roslib.load_manifest('opencv_work')
+
 
 def callback(data):
 
@@ -18,7 +19,7 @@ def callback(data):
     # rotation_angle = data.data[4]
     # pos_data = data.data[0:4].reshape((2, 2))
 
-    print('Position Data: \n' + str(data.com1) + '\n' + str(data.com2) + '\n' + 'Rotation Angle: \n' + str(data.rotation) + '\n')
+    print('Position Data: \n' + str(data.comx) + '\n' + str(data.comy) + '\n' + 'Rotation Angle: \n' + str(data.rotation) + '\n')
 
     # rospy.loginfo(data)
 

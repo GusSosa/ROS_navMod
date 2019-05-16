@@ -25,13 +25,13 @@ struct SpineState_
 
   SpineState_()
     : rotation(0.0)
-    , com1()
-    , com2()  {
+    , comy(0.0)
+    , comx(0.0)  {
     }
   SpineState_(const ContainerAllocator& _alloc)
     : rotation(0.0)
-    , com1(_alloc)
-    , com2(_alloc)  {
+    , comy(0.0)
+    , comx(0.0)  {
   (void)_alloc;
     }
 
@@ -40,11 +40,11 @@ struct SpineState_
    typedef double _rotation_type;
   _rotation_type rotation;
 
-   typedef std::vector<double, typename ContainerAllocator::template rebind<double>::other >  _com1_type;
-  _com1_type com1;
+   typedef double _comy_type;
+  _comy_type comy;
 
-   typedef std::vector<double, typename ContainerAllocator::template rebind<double>::other >  _com2_type;
-  _com2_type com2;
+   typedef double _comx_type;
+  _comx_type comx;
 
 
 
@@ -80,7 +80,7 @@ namespace message_traits
 
 
 
-// BOOLTRAITS {'IsFixedSize': False, 'IsMessage': True, 'HasHeader': False}
+// BOOLTRAITS {'IsFixedSize': True, 'IsMessage': True, 'HasHeader': False}
 // {'std_msgs': ['/opt/ros/melodic/share/std_msgs/cmake/../msg'], 'opencv_work': ['/home/jmadden/2d-spine-control-hardware/ros-spine-control/src/opencv_work/msg'], 'sensor_msgs': ['/opt/ros/melodic/share/sensor_msgs/cmake/../msg'], 'geometry_msgs': ['/opt/ros/melodic/share/geometry_msgs/cmake/../msg']}
 
 // !!!!!!!!!!! ['__class__', '__delattr__', '__dict__', '__doc__', '__eq__', '__format__', '__getattribute__', '__hash__', '__init__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', '_parsed_fields', 'constants', 'fields', 'full_name', 'has_header', 'header_present', 'names', 'package', 'parsed_fields', 'short_name', 'text', 'types']
@@ -90,12 +90,12 @@ namespace message_traits
 
 template <class ContainerAllocator>
 struct IsFixedSize< ::opencv_work::SpineState_<ContainerAllocator> >
-  : FalseType
+  : TrueType
   { };
 
 template <class ContainerAllocator>
 struct IsFixedSize< ::opencv_work::SpineState_<ContainerAllocator> const>
-  : FalseType
+  : TrueType
   { };
 
 template <class ContainerAllocator>
@@ -124,12 +124,12 @@ struct MD5Sum< ::opencv_work::SpineState_<ContainerAllocator> >
 {
   static const char* value()
   {
-    return "0c4ed841ebd6c1ed336e4b4bb0dbbca7";
+    return "362faa163ba6b21bd1aa0295e7ccf8ab";
   }
 
   static const char* value(const ::opencv_work::SpineState_<ContainerAllocator>&) { return value(); }
-  static const uint64_t static_value1 = 0x0c4ed841ebd6c1edULL;
-  static const uint64_t static_value2 = 0x336e4b4bb0dbbca7ULL;
+  static const uint64_t static_value1 = 0x362faa163ba6b21bULL;
+  static const uint64_t static_value2 = 0xd1aa0295e7ccf8abULL;
 };
 
 template<class ContainerAllocator>
@@ -149,8 +149,8 @@ struct Definition< ::opencv_work::SpineState_<ContainerAllocator> >
   static const char* value()
   {
     return "float64 rotation\n\
-float64[] com1\n\
-float64[] com2\n\
+float64 comy\n\
+float64 comx\n\
 ";
   }
 
@@ -170,8 +170,8 @@ namespace serialization
     template<typename Stream, typename T> inline static void allInOne(Stream& stream, T m)
     {
       stream.next(m.rotation);
-      stream.next(m.com1);
-      stream.next(m.com2);
+      stream.next(m.comy);
+      stream.next(m.comx);
     }
 
     ROS_DECLARE_ALLINONE_SERIALIZER
@@ -192,18 +192,10 @@ struct Printer< ::opencv_work::SpineState_<ContainerAllocator> >
   {
     s << indent << "rotation: ";
     Printer<double>::stream(s, indent + "  ", v.rotation);
-    s << indent << "com1[]" << std::endl;
-    for (size_t i = 0; i < v.com1.size(); ++i)
-    {
-      s << indent << "  com1[" << i << "]: ";
-      Printer<double>::stream(s, indent + "  ", v.com1[i]);
-    }
-    s << indent << "com2[]" << std::endl;
-    for (size_t i = 0; i < v.com2.size(); ++i)
-    {
-      s << indent << "  com2[" << i << "]: ";
-      Printer<double>::stream(s, indent + "  ", v.com2[i]);
-    }
+    s << indent << "comy: ";
+    Printer<double>::stream(s, indent + "  ", v.comy);
+    s << indent << "comx: ";
+    Printer<double>::stream(s, indent + "  ", v.comx);
   }
 };
 

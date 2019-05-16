@@ -48,9 +48,10 @@ def talker():
                 pt2h = np.r_[np.transpose([pt2]), np.array([[1]])]
                 pt1true = np.dot(Q, pt1h)[0:2, :] / np.dot(Q, pt1h)[2, :]   # location of dowel pin 1 in global frame (must divide by homography scaling factor)
                 pt2true = np.dot(Q, pt2h)[0:2, :] / np.dot(Q, pt2h)[2, :]  # location of dowel pin 2 in global frame (divide by homography scaling factor)
-                mag = np.linalg.norm(pt1true - pt2true)  # magintude of vector between pins
+                mag = np.linalg.norm(pt2true - pt1true)  # magintude of vector between pins
                 duvec = (pt2true - pt1true) / mag  # unit vector between dowel pin locations
                 origin = pt1true - np.transpose([duvec * d1])  # global vertebra origin
+                # print type(origin[0, 0])
                 # re-calculate origin in pixel coordinates and visualize on frame
                 originh = np.concatenate((origin[0], np.array([[1]])), axis=0)
                 originpix = (np.dot(inv(Q), originh) / np.dot(inv(Q), originh)[2, :])[0:2, :].astype(int)
@@ -63,12 +64,12 @@ def talker():
                 angle = np.math.atan2(np.linalg.det([np.stack((uvec.reshape(1, 2)[0], duvec.reshape(1, 2)[0]))]),
                                       np.dot(uvec.reshape(1, 2), duvec))  # angle of vertebra rotation
 
-                # print 'origin: ' + str(origin[0][:, 0])
-                # print 'angle: ' + str(np.degrees(angle))
+                # nominal_origin = [32.84, 15.24]
+                # print 'origin dif: ' + str(nominal_origin - origin[0][:, 0])  # nominal: [32.84, 15.24]
+                # print 'angle dif: ' + str(np.degrees(angle))
 
                 # publish data
-                # message = SpineState(rotation=theta, com1=pt1true, com2=pt2true)
-                message = SpineState(rotation=angle, com1=origin[0, 0], com2=origin[0, 1])
+                message = SpineState(rotation=angle, comx=float(origin[0, 0][0]), comy=float(origin[0, 1][0]))
                 pub.publish(message)
                 rate.sleep()
 

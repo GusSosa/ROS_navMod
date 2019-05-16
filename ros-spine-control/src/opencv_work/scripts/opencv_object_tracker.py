@@ -27,7 +27,7 @@ PIX_W = 2400
 NUM_PT = 10
 
 # define HSV color ranges for blob detector
-lower_blue = np.array([90, 200, 50])
+lower_blue = np.array([90, 50, 50])
 upper_blue = np.array([130, 255, 255])
 lower_red1 = np.array([0, 50, 50])
 upper_red1 = np.array([10, 255, 255])
@@ -47,7 +47,7 @@ def tracker_init():
     params.blobColor = 255
     # Filter by Area.
     params.filterByArea = True
-    params.minArea = 1000  # NOTE: 750 for 1500W frame; 1500 for 3000W
+    params.minArea = 1200  # NOTE: 1000 for 05-15-2019, NOTE: 750 for 1500W frame; 1500 for 3000W
     # params.maxArea = 2500
     # Filter by Circularity
     params.filterByCircularity = True
@@ -178,7 +178,7 @@ def tracker_main(detector, K, D, vs, originpix):
     # show the output frame
     if originpix is not None:
         # print tuple(originpix.reshape(1, -1)[0])
-        cv2.circle(dst, tuple(originpix.reshape(1, -1)[0]), 20, (0, 255, 255), -1)
+        cv2.circle(dst, tuple(originpix.reshape(1, -1)[0]), 20, (0, 0, 255), -1)
     cv2.imshow('Frame', dst)
 
     # reset keyboard interrupt key
@@ -227,6 +227,8 @@ def blob_detection(detector, dst):
     blcom = np.array([blkeypoints[i].pt for i in range(int(len(blkeypoints)))]).astype(int)
     # pix_com = np.array([bcom, rcom])
     pix_com = np.array([rcom, bcom])
+    # print 'red: ' + str(pix_com[0, :])
+    # print 'blue: ' + str(pix_com[1, :])
 
     return {'pix_com': pix_com, 'bim_with_keypoints': bim_with_keypoints, 'rim_with_keypoints': rim_with_keypoints,
             'blim_with_keypoints': blim_with_keypoints, 'blcom': blcom}

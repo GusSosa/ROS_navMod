@@ -1,3 +1,3 @@
 float64 rotation
-float64[] com1
-float64[] com2
+float64 comy
+float64 comx
