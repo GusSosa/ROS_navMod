@@ -22,7 +22,6 @@ TOT_H_CLICKS = 4
 # PIX_W = 1500
 # Drew's laptop screen is 1600x900 so the above is too big.
 PIX_W = 2400
-PIX_W = 2400
 
 # Define number of expected homography dots
 NUM_PT = 10
@@ -35,7 +34,7 @@ upper_red1 = np.array([10, 255, 255])
 lower_red2 = np.array([170, 50, 50])
 upper_red2 = np.array([180, 255, 255])
 lower_black = np.array([0, 0, 0])
-upper_black = np.array([255, 255, 40])
+upper_black = np.array([255, 255, 60])
 
 
 def tracker_init():
@@ -52,7 +51,7 @@ def tracker_init():
     # params.maxArea = 2500
     # Filter by Circularity
     params.filterByCircularity = True
-    params.minCircularity = 0.70  # 0.80 reguired for 3000W frame; 0.85 usable for 1500W
+    params.minCircularity = 0.40  # 0.80 reguired for 3000W frame; 0.85 usable for 1500W
 
     # Create a detector with the parameters
     ver = (cv2.__version__).split('.')
@@ -178,7 +177,7 @@ def tracker_main(detector, K, D, vs, originpix):
 
     # show the output frame
     if originpix is not None:
-        print tuple(originpix.reshape(1, -1)[0])
+        # print tuple(originpix.reshape(1, -1)[0])
         cv2.circle(dst, tuple(originpix.reshape(1, -1)[0]), 20, (0, 255, 255), -1)
     cv2.imshow('Frame', dst)
 
@@ -203,7 +202,7 @@ def blob_detection(detector, dst):
     # Median blur to smooth edges and output image
     bmedian = cv2.medianBlur(blue_mask, 9)
     rmedian = cv2.medianBlur(red_mask, 13)
-    blmedian = cv2.medianBlur(black_mask, 11)  # 2019_04.15 note: 5 works well for smaller homography dots/lower resolution
+    blmedian = cv2.medianBlur(black_mask, 13)  # 2019_04.15 note: 5 works well for smaller homography dots/lower resolution
 
     # # Otsu's thresholding after Gaussian filtering
     # gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
