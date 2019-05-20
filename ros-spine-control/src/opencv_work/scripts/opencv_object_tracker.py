@@ -24,9 +24,11 @@ TOT_H_CLICKS = 4
 PIX_W = 1600
 
 # Define number of expected homography dots
-NUM_PT = 10
+# Note that is must be an even number (ie 6, 8, 10)
+NUM_H = 10
 
 # define HSV color ranges for blob detector
+# Note that there are two red values because it wraps the HSV range
 lower_blue = np.array([90, 50, 50])
 upper_blue = np.array([130, 255, 255])
 lower_red1 = np.array([0, 50, 50])
@@ -48,10 +50,9 @@ def tracker_init():
     # Filter by Area.
     params.filterByArea = True
     params.minArea = 500  # NOTE: 1000 for 05-15-2019, NOTE: 750 for 1500W frame; 1500 for 3000W
-    # params.maxArea = 2500
     # Filter by Circularity
     params.filterByCircularity = True
-    params.minCircularity = 0.80  # 0.80 reguired for 3000W frame; 0.85 usable for 1500W
+    params.minCircularity = 0.70  # 0.80 reguired for 3000W frame; 0.85 usable for 1500W
 
     # Create a detector with the parameters
     ver = (cv2.__version__).split('.')
@@ -108,7 +109,6 @@ def tracker_init():
         cv2.imshow('Black Keypoints', blob_detection_data['blim_with_keypoints'])
         # cv2.imshow('Blue Keypoints', blob_detection_data['bim_with_keypoints'])
         # cv2.imshow('Red Keypoints', blob_detection_data['rim_with_keypoints'])
-        # cv2.imshow('original', frame)
         # cv2.imshow('undistorted', dst)
 
         # reset keyboard interrupt, unless the 't' key has been pressed
@@ -128,8 +128,8 @@ def tracker_init():
         # if the 't' key is selected, we are going to start tracking
         if key == ord('t'):
 
-            # eight homography dots not detected
-            if len(blob_detection_data['blcom']) != NUM_PT:
+            # NUM_H homography dots not detected
+            if len(blob_detection_data['blcom']) != NUM_H:
                 # restart whiel loop to keep searching for eight dots
                 pass
 
@@ -145,7 +145,7 @@ def tracker_init():
                 blcom = blob_detection_data['blcom']
                 Q = np.linalg.inv(H)  # calculate Q matrix for pixel- real world conversion
                 u1 = np.array(blcom[0, :])  # location of first homography dot (ie world frame origin) in pixel frame
-                u2 = np.array(blcom[NUM_PT - 2, :])  # location of dowel pin 2 in pixel frame
+                u2 = np.array(blcom[NUM_H - 2, :])  # location of dowel pin 2 in pixel frame
                 u1h = np.r_[np.transpose([u1]), np.array([[1]])]
                 u2h = np.r_[np.transpose([u2]), np.array([[1]])]
                 u1true = np.dot(Q, u1h)[0:2, :] / np.dot(Q, u1h)[2, :]  # location of first homography dot (ie world frame origin)
@@ -177,7 +177,7 @@ def tracker_main(detector, K, D, vs, originpix):
 
     try:  # show circle of detected COM
         cv2.circle(dst, tuple(originpix.reshape(1, -1)[0]), 10, (0, 0, 255), -1)
-    except AttributeError:  # unless COM is not detected
+    except OverflowError:  # unless COM is not detected
         pass
     # show the output frame
     cv2.imshow('Frame', dst)
@@ -226,10 +226,7 @@ def blob_detection(detector, dst):
     bcom = np.array([int(i) for i in bkeypoints[0].pt]) if bkeypoints else np.array([0, 0])
     rcom = np.array([int(i) for i in rkeypoints[0].pt]) if rkeypoints else np.array([0, 0])
     blcom = np.array([blkeypoints[i].pt for i in range(int(len(blkeypoints)))]).astype(int)
-    # pix_com = np.array([bcom, rcom])
     pix_com = np.array([rcom, bcom])
-    # print 'red: ' + str(pix_com[0, :])
-    # print 'blue: ' + str(pix_com[1, :])
 
     return {'pix_com': pix_com, 'bim_with_keypoints': bim_with_keypoints, 'rim_with_keypoints': rim_with_keypoints,
             'blim_with_keypoints': blim_with_keypoints, 'blcom': blcom}
@@ -259,7 +256,7 @@ def auto_homography(blob_detection_data):
     # NOTE: Distance between consecutive points is 7.62/2 (ie 1.5 inches)
     center_dist_vert = 3.81  # 1.5 inches
     center_dist_horz = 55.88  # 22 inches
-    global_pts = np.vstack((np.tile([0, 1], NUM_PT / 2) * center_dist_horz, np.array([i * center_dist_vert for i in range(NUM_PT)]))).transpose()
+    global_pts = np.vstack((np.tile([0, 1], NUM_H / 2) * center_dist_horz, np.array([i * center_dist_vert for i in range(NUM_H)]))).transpose()
 
     # Call homography function
     H = calculate_homography2.calc_H(uv, global_pts)
