@@ -77,16 +77,25 @@ test_structs = {};
 % is actually OK, modulo some potential millisec errors in the response,
 % since the "new" state timestamps are the same frequency as the "old".
 % There's just potentiall a small offset.
-struct1.datetime_cv ='2018-12-12_120256_timeadjusted';
-struct1.datetime_invkin = '2018-12-13_121638';
+% struct1.datetime_cv ='2018-12-12_120256_timeadjusted';
+% struct1.datetime_invkin = '2018-12-13_121638';
+% %struct1.start_row_cv = 102;
+% struct1.start_row_cv = 3;
+% struct1.end_row_cv = -1;
+% % note that the rows for IK are pre-specified: just 2 to end.
+% % store it
+% test_structs{1} = struct1;
+
+% For the May 16th, 2019 test:
+struct1.datetime_cv ='2019-5-16_152348';
+struct1.datetime_invkin = '2019-5-16_152343';
 %struct1.start_row_cv = 102;
-struct1.start_row_cv = 3;
-struct1.end_row_cv = -1;
+struct1.start_row_cv = 42;
+% struct1.end_row_cv = -1;
+struct1.end_row_cv = 670;
 % note that the rows for IK are pre-specified: just 2 to end.
 % store it
 test_structs{1} = struct1;
-
-
 
 
 % Call the parser

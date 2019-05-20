@@ -87,16 +87,21 @@ for i=1:num_tests
     errors{i}.rot_ik = data_ik_i(:, 7);
     
     %% Next, convert the state information between the two frames. 
-    % The origin of the MATLAB frame is hard to get in the computer vision
-    % frame - lots of calculations from where we put the grid - so here's
-    % an estimate within a few mm for now.
-    squares_x = 5;
-    squares_y = 8.2;
-    % Each square is 2 cm so the offsets are
-    offset_x = squares_x * 2;
-    offset_y = squares_y * 2;
-    % In cm, then, 
-    errors{i}.com_ik_inframe = errors{i}.com_ik * 100 + [offset_x, offset_y];
+%     % The origin of the MATLAB frame is hard to get in the computer vision
+%     % frame - lots of calculations from where we put the grid - so here's
+%     % an estimate within a few mm for now.
+%     squares_x = 5;
+%     squares_y = 8.2;
+%     % Each square is 2 cm so the offsets are
+%     offset_x = squares_x * 2;
+%     offset_y = squares_y * 2;
+%     % In cm, then, 
+%     errors{i}.com_ik_inframe = errors{i}.com_ik * 100 + [offset_x, offset_y];
+    
+    % ^ 2019-05-16: The CV script and MATLAB script now have the same
+    % frame, but errors need to be scaled still.
+    errors{i}.com_ik_inframe = errors{i}.com_ik * 100;
+    
     % The rotation also needs to be converted to degrees.
     errors{i}.rot_ik_inframe = errors{i}.rot_ik * 180/pi;
     
@@ -112,13 +117,15 @@ for i=1:num_tests
     plot(errors{i}.com_cv(:,1), errors{i}.com_cv(:,2), 'b', 'LineWidth', 3);
     plot(errors{i}.com_ik_inframe(:,1), errors{i}.com_ik_inframe(:,2), 'r', 'LineWidth', 3);
     % Annotate the plot
-    title('Spine Position Inverse Kinematics Test ');
+    title('Spine Inverse Statics Control Test ');
     ylabel('Spine CoM, Y (cm)');
     xlabel('Spine CoM, X (cm)');
     legend('Test (Computer Vision)', 'Predicted State', 'Location', 'Best');
     % Set the limits:
-    xlim([10 20]);
-    ylim([11 23]);
+%     xlim([10 20]);
+%     ylim([11 23]);
+    xlim([20 35]);
+    ylim([7 27]);
     
     %% Get a set of aligned data. 
     % This is necessary so we can zero-order-hold the inverse kinematics
@@ -188,7 +195,7 @@ for i=1:num_tests
     ylabel('X (cm)');
     % Only create a title for the first plot, that will serve for all the others too.
     %title('Tracking Errors in X Y Z  \theta \gamma \psi');
-    title('   State Errors, Inverse Kinematics Test');
+    title('   State Errors, Inverse Statics Control Test');
     set(gca,'FontSize',fontsize);
     % Scale the plot. A good scale here is...
     ylim([-0.6 0.6]);
