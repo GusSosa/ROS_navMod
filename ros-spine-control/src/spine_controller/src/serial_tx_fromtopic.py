@@ -98,8 +98,10 @@ class SerialTxFromTopic:
     # The primary helper function here opens the serial device,
     # subscribes to a topic, writes when new data appears on the topic, and
     # echoes (publishes) its pushed data back out on *another* topic for debugging.
-    def serial_tx_startup(self, device_name, topic_name):
+    def serial_tx_startup(self, device_name):
         # A welcome message
+        # Hard-coding the topic name, doesn't make sense to need to pass it in each time.
+        topic_name = 'invkin_tx_commands'
         print("Running serial_tx_fromtopic node with device " + device_name
               + " and topic " + topic_name)
         #print(" and python version:")
@@ -129,8 +131,8 @@ class SerialTxFromTopic:
 
     # The constructor calls a helper to initialize everything, and stores the
     # resulting publisher and serial port object that's created.
-    def __init__(self, device_name, topic_name):
-        self.serial_port, self.pub = self.serial_tx_startup(device_name, topic_name)
+    def __init__(self, device_name):
+        self.serial_port, self.pub = self.serial_tx_startup(device_name)
         # and that's all.
 
 
@@ -139,7 +141,7 @@ class SerialTxFromTopic:
 if __name__ == '__main__':
     # the 0-th arg is the name of the file itself, so we want the 1st and 2nd
     # We're making this a class now.
-    s_tx = SerialTxFromTopic(sys.argv[1], sys.argv[2])
+    s_tx = SerialTxFromTopic(sys.argv[1])
     # We do the spin() in main. It's not appropriate for a constructor.
     try:
         rospy.spin()

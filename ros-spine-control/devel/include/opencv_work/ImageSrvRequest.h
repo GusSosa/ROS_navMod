@@ -135,8 +135,8 @@ struct Definition< ::opencv_work::ImageSrvRequest_<ContainerAllocator> >
 {
   static const char* value()
   {
-    return "\n\
-";
+    return "\n"
+;
   }
 
   static const char* value(const ::opencv_work::ImageSrvRequest_<ContainerAllocator>&) { return value(); }

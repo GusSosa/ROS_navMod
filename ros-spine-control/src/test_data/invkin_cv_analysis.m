@@ -12,7 +12,10 @@ clc;
 % The folder where the data files are. 
 % Needs to be the same for all files (as of now at least - to do make
 % modular)
-filepath = '.';
+% filepath = '.';
+
+% June 2019: moved into the summer2019 folder.
+filepath = './summer2019/';
 
 % The cell array to put everything in
 test_structs = {};
@@ -87,15 +90,18 @@ test_structs = {};
 % test_structs{1} = struct1;
 
 % For the May 16th, 2019 test:
-struct1.datetime_cv ='2019-5-16_152348';
-struct1.datetime_invkin = '2019-5-16_152343';
+struct1.datetime_cv ='2019-6-21_161626';
+struct1.datetime_invkin = '2019-6-21_161621';
 %struct1.start_row_cv = 102;
-struct1.start_row_cv = 42;
+struct1.start_row_cv = 20;
 % struct1.end_row_cv = -1;
-struct1.end_row_cv = 670;
+struct1.end_row_cv = 850;
 % note that the rows for IK are pre-specified: just 2 to end.
 % store it
 test_structs{1} = struct1;
+
+% For the June 21st, 2019 test:
+
 
 
 % Call the parser

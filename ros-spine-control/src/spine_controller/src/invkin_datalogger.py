@@ -75,7 +75,9 @@ class IKDataLogger:
         f.close()
 
     # a helper function for startup, called by constructor
-    def datalogger_startup(self, topic_name, file_folder):
+    def datalogger_startup(self, file_folder):
+        # hard-code the topic name
+        topic_name = 'invkin_tx_commands'
         # create the ROS node that will subscribe to the InvkinControlCommand messages.
         rospy.init_node('invkin_datalogger', anonymous=False)
         rospy.Subscriber(topic_name, InvkinControlCommand, self.log_callback)
@@ -95,16 +97,16 @@ class IKDataLogger:
 
     # the constructor initializes everything. 
     # Here is where the file handle is created.
-    def __init__(self, topic_name, file_folder):
+    def __init__(self, file_folder):
         # Save a reference to the file name so the callback can append new data.
-        self.filename = self.datalogger_startup(topic_name, file_folder)
+        self.filename = self.datalogger_startup(file_folder)
 
 # the main function: create one of these objects, while parsing the file path
 # Arguments: topic_name = name of topic (invkin_tx_commands for now)
 #            file_folder = folder to create the log. Should NOT end with trailing "/".
 if __name__ == '__main__':
     # the 0-th arg is the name of the file itself, so we want the 1st and 2nd
-    logger = IKDataLogger(sys.argv[1], sys.argv[2])
+    logger = IKDataLogger(sys.argv[1], )
     # We do the spin() in main. It's not appropriate for a constructor.
     try:
         rospy.spin()
