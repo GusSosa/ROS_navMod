@@ -19,7 +19,7 @@
 // Although this looks wrong, it's actually how you have to do it:
 // one with "extern" which only declares, and one without that actually defines.
 //float current_control[NUM_MOTORS] = {0.0, 0.0, 0.0, 0.0};
-int16 current_control[NUM_MOTORS] = {0, 0, 0, 0};
+int32 current_control[NUM_MOTORS] = {0, 0, 0, 0};
 float control_in_cm[NUM_MOTORS] = {0.0, 0.0, 0.0, 0.0};
 
 // Kim's work:
@@ -49,10 +49,10 @@ int print = 1;
 // For calculating control inputs, store
 // some variable related to the total error in encoder ticks.
 // used for prop, int, and deriv terms.
-int16 error[NUM_MOTORS] = {0, 0, 0, 0};
-int16 integral_error[NUM_MOTORS] = {0, 0, 0, 0};
-int16 prev_error[NUM_MOTORS] = {0, 0, 0, 0};
-int16 deriv_error[NUM_MOTORS] = {0, 0, 0, 0};
+int32 error[NUM_MOTORS] = {0, 0, 0, 0};
+int32 integral_error[NUM_MOTORS] = {0, 0, 0, 0};
+int32 prev_error[NUM_MOTORS] = {0, 0, 0, 0};
+int32 deriv_error[NUM_MOTORS] = {0, 0, 0, 0};
 
 
 /* [] END OF FILE */

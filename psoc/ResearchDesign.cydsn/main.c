@@ -8,36 +8,16 @@
  * ========================================
 */
 
-// Constants and defines for the motors.
-// On 2018-12-10, changed the PWM frequency so the output is scaled.
-// Now, outputs are up to 10,000, so everything is times 10.
-// This is to get higher resolution for (e.g.) the integral control,
-// so our control constants don't have to be as small / overflow-y.
-// between 3000 and 1000. Works-ish with 5000.
-//#define PWM_MAX 5000
-//#define PWM_MAX 500
-#define PWM_MAX 800
-//#define PWM_MAX 10000
-// initial should be around 4000
-//#define PWM_INIT 4000
-//#define PWM_INIT 400
-#define PWM_INIT 300
-// min of 90 if at 12V 
-//#define PWM_MIN 400
-//#define PWM_MIN 900
-//#define PWM_MIN 1000 //2000
-#define PWM_MIN 90
+#define PWM_CW_MAX 400
+#define PWM_CW_MIN 315
 
-//#define TICKS_MIN 10
-//#define TICKS_STOP 50
-//#define TICKS_STOP 100
+#define PWM_STOP 300
 
-// For the motors that are using the quadrature decoder component, the above
-// should be multiplied by a factor of 4 (since it's 4 times as precise as our counting.)
-#define TICKS_MIN_QD 40
-#define TICKS_STOP_QD 50
-//#define TICKS_STOP_QD 100
-//#define TICKS_STOP_QD 150
+#define PWM_CCW_MAX 285
+#define PWM_CCW_MIN 200
+
+// Tolerance to stop moving motor 
+#define TICKS_STOP_QD 500
 
 // For transmitting strings with other variables substituted in,
 // (note: re-using variable names since out-of-scope of uart_helper_fcns.)
@@ -59,101 +39,93 @@ char transmit_buffer[TRANSMIT_LENGTH];
 
 // constants of proportionality are integers.
 
-//float Kp_qd = 10;
-//float Ki_qd = 1;
-//int Kd_qd = 15;
-
-//float Kp_qd = 10; //12
-float Kp_qd = 1;
+//float Kp_qd = 1;
 //float Kp_qd = 0.1;
+float Kp_qd = 0.001;
+//float Kp_qd = 0;
 
-//float Kp_qd = 5;
-//float Ki_qd = 5; //0.8
-//float Ki_qd = 0.1;
-float Ki_qd = 0.1;
+//float Ki_qd = 1;
+//float Ki_qd = 0.00001;
+float Ki_qd = 0.00001;
 
-//float Ki_qd = 2;
-//float Ki_qd = 0;
-//float Kd_qd = 10; //15
-//float Kd_qd = 0;
-//float Kd_qd = 5;
-//float Kd_qd = 0.1;
-float Kd_qd = 0.5;
+//float Kd_qd = 1;
+//float Kd_qd = 0.0005;
+float Kd_qd = 0.009;
 
 // A set of local variables for the calculated PWM signals.
 // These are *signed*, so cannot be directly used with WriteCompare.
-// Gotta set the direction pins, then abs() this.
-static int16 pwm_controls[NUM_MOTORS] = {0, 0, 0, 0};
+static int32 pwm_controls[NUM_MOTORS] = {0, 0, 0, 0};
 
 void move_motor_1() {
     // Proportional term
-    error[0] = current_control[0] - QuadDec_Motor1_GetCounter();
+    error[0] = current_control[0] - (QuadDec_Motor1_GetCounter());
     
     // Integral term: discretized integration = addition (scaled.)
     // Note that we have to prevent integer overflow here.
-    if((integral_error[0] + error[0] >= INT16_LOWERBOUND) && (integral_error[0] + error[0] <= INT16_UPPERBOUND)){
+    if((integral_error[0] + error[0] >= INT32_LOWERBOUND) && (integral_error[0] + error[0] <= INT32_UPPERBOUND)){
         integral_error[0] += error[0];
     }
     
     // Derivative term. discretized derivative = subtraction.
     deriv_error[0] = error[0] - prev_error[0];
     
+    
     // Calculate the control input.
     // This automatically casts the integral control input to an int from a float.
     pwm_controls[0] = error[0] * Kp_qd + integral_error[0] * Ki_qd + deriv_error[0] * Kd_qd;
-    // store an absolute-value version for actual application.
-    int16 pwm_control_0_abs = abs(pwm_controls[0]);
     
-    // Determine direction of rotation
-    if (pwm_controls[0] > 0) {
-        Pin_High_1_Write(1);
-        Pin_Low_1_Write(0);
-    }
-    else {
-        Pin_High_1_Write(0);
-        Pin_Low_1_Write(1);
-    }   
+    // Shift by *300* (determined by PWM clock and period right now) to put PWM values in correct range for VESC
+    int32 pwm_control_0 = pwm_controls[0] + 300;
+    
     
     // Apply the PWM value. Five options:
     // 1) If we're within tolerance of the target, turn off the PWM.
-    // 2) If not within tolerance, check if first application of control: apply "init" to break static friction
+    // 2) REMOVED
     // 3) If not within tolerance, lower bound with PWM_MIN.
-    // 4) If not within tolerance and input less than max, apply the calculated input.
+    // 4) REMOVED 
     // 5) If not within tolerance, upper bound with PWM_MAX.
+    // 6) If greater than STOP but less than minimum value to move CW, apply PWM_CW_MIN
+    // 7) If less than STOP but greater than maximum value to move CCW, apply PWM_CCW_MAX
+    // 8) If not in either range, apply control input 
+    
+    //sprintf(transmit_buffer, "Current control: %ld\r\n",pwm_control_0);
+    //UART_PutString(transmit_buffer);
     
     // 1) Is absolute encoder value within tolerance?
     if (abs(error[0]) < TICKS_STOP_QD){
-        PWM_1_WriteCompare(0);    
+        PWM_1_WriteCompare(PWM_STOP);    
         motor_1 = 0;
         // minor hack for now:
         // reset the integral terms, so this is a "stopping point"
         integral_error[0] = 0;
-        // Here, since we're set back to "stop", reset the first loop flag
-        // so that next time, init is applied.
-        first_loop_1 = 1;
+        // reset error, so this is a "stopping point"
+        error[0] = 0;
     }
-    // Otherwise, do 2-5.
+    // Otherwise if havent reached tolerance, do 2-5.
     else {
-        // 2) If this is the first application of a control for this "round",
-        // apply something to break static friction.
-        if (first_loop_1 == 1) {
-            PWM_1_WriteCompare(PWM_INIT);
-            first_loop_1 = 0;
-        }
         // 5) Check if upper bounded.
-        else if (pwm_control_0_abs > PWM_MAX) { 
-            PWM_1_WriteCompare(PWM_MAX); 
+        if (pwm_control_0 > PWM_CW_MAX) { 
+            PWM_1_WriteCompare(PWM_CW_MAX); 
         }
         // 3) Check if lower bounded.
-        else if (pwm_control_0_abs < PWM_MIN) {
-            PWM_1_WriteCompare(PWM_MIN); 
+        else if (pwm_control_0 < PWM_CCW_MIN) {
+            PWM_1_WriteCompare(PWM_CCW_MIN); 
         }
-        // 4) otherwise, we know we're within the min to max.
+        // 6) Check if below lower bound for CW.
+        else if ((pwm_control_0 <= PWM_CW_MIN) && (pwm_control_0 > PWM_STOP)) {
+            PWM_1_WriteCompare(PWM_CW_MIN);
+        }
+        // 7) Check if above upper bound for CCW.
+        else if ((pwm_control_0 < PWM_STOP) && (pwm_control_0 >= PWM_CCW_MAX)) {
+            PWM_1_WriteCompare(PWM_CCW_MAX);
+        }
+        // 8) otherwise, we know we're within the min to max.
         else {
              // This, right here, is the actual application of our control signal.
-            PWM_1_WriteCompare(pwm_control_0_abs); 
+            PWM_1_WriteCompare(pwm_control_0); 
         }
     }
+    
     // Finally, set the stored value for the next iteration's error term.
     // It's safest to do this all the way at the end.
     prev_error[0] = error[0];
@@ -167,7 +139,7 @@ void move_motor_2() {
     
     // Integral term: discretized integration = addition to sum (scaled.)
     // Note that we have to prevent buffer overflow here.
-    if((integral_error[1] + error[1] >= INT16_LOWERBOUND) && (integral_error[1] + error[1] <= INT16_UPPERBOUND)){
+    if((integral_error[1] + error[1] >= INT32_LOWERBOUND) && (integral_error[1] + error[1] <= INT32_UPPERBOUND)){
         integral_error[1] += error[1];
     }
     
@@ -177,18 +149,9 @@ void move_motor_2() {
     // Calculate the control input.
     // This automatically casts the integral control input to an int from a float.
     pwm_controls[1] = error[1] * Kp_qd + integral_error[1] * Ki_qd + deriv_error[1] * Kd_qd;
-    // store an absolute-value version for actual application.
-    int16 pwm_control_1_abs = abs(pwm_controls[1]);
+    // Shift by *300* (determined by PWM clock and period right now) to put PWM values in correct range for VESC
+    int32 pwm_control_1 = pwm_controls[1] + 300;
     
-    // Determine direction of rotation
-    if (pwm_controls[1] > 0) {
-        Pin_High_2_Write(1);
-        Pin_Low_2_Write(0);
-    }
-    else {
-        Pin_High_2_Write(0);
-        Pin_Low_2_Write(1);
-    }
     
     // Apply the PWM value. Five options:
     // 1) If we're within tolerance of the target, turn off the PWM.
@@ -197,39 +160,41 @@ void move_motor_2() {
     // 4) If not within tolerance and input less than max, apply the calculated input.
     // 5) If not within tolerance, upper bound with PWM_MAX.
 
-    // 1) Is absolute encoder value within tolerance?
+        // 1) Is absolute encoder value within tolerance?
     if (abs(error[1]) < TICKS_STOP_QD){
-        PWM_2_WriteCompare(0);    
+        PWM_2_WriteCompare(PWM_STOP);    
         motor_2 = 0;
         // minor hack for now:
         // reset the integral terms, so this is a "stopping point"
         integral_error[1] = 0;
-        // Here, since we're set back to "stop", reset the first loop flag
-        // so that next time, init is applied.
-        first_loop_2 = 1;
+        // reset error, so this is a "stopping point"
+        error[1] = 0;
     }
-    // Otherwise, do 2-4.
+    // Otherwise if havent reached tolerance, do 2-5.
     else {
-        // 2) If this is the first application of a control for this "round",
-        // apply something to break static friction.
-        if (first_loop_2 == 1) {
-            PWM_2_WriteCompare(PWM_INIT);
-            first_loop_2 = 0;
-        }
         // 5) Check if upper bounded.
-        if (pwm_control_1_abs > PWM_MAX) { 
-            PWM_2_WriteCompare(PWM_MAX); 
+        if (pwm_control_1 > PWM_CW_MAX) { 
+            PWM_2_WriteCompare(PWM_CW_MAX); 
         }
         // 3) Check if lower bounded.
-        else if (pwm_control_1_abs < PWM_MIN) {
-            PWM_2_WriteCompare(PWM_MIN); 
+        else if (pwm_control_1 < PWM_CCW_MIN) {
+            PWM_2_WriteCompare(PWM_CCW_MIN); 
         }
-        // 4) Otherwise, we know we're within min to max.
+        // 6) Check if below lower bound for CW.
+        else if ((pwm_control_1 <= PWM_CW_MIN) && (pwm_control_1 > PWM_STOP)) {
+            PWM_2_WriteCompare(PWM_CW_MIN);
+        }
+        // 7) Check if above upper bound for CCW.
+        else if ((pwm_control_1 < PWM_STOP) && (pwm_control_1 >= PWM_CCW_MAX)) {
+            PWM_2_WriteCompare(PWM_CCW_MAX);
+        }
+        // 8) otherwise, we know we're within the min to max.
         else {
-            // This, right here, is the actual application of our control signal.
-            PWM_2_WriteCompare(pwm_control_1_abs); 
+             // This, right here, is the actual application of our control signal.
+            PWM_2_WriteCompare(pwm_control_1); 
         }
-    }    
+    }
+    
     // Finally, set the stored value for the next iteration's error term.
     // It's safest to do this all the way at the end.
     prev_error[1] = error[1];
@@ -241,7 +206,7 @@ void move_motor_3() {
     
     // Integral term: discretized integration = addition (scaled.)
     // Note that we have to prevent integer overflow here.
-    if((integral_error[2] + error[2] >= INT16_LOWERBOUND) && (integral_error[2] + error[2] <= INT16_UPPERBOUND)){
+    if((integral_error[2] + error[2] >= INT32_LOWERBOUND) && (integral_error[2] + error[2] <= INT32_UPPERBOUND)){
         integral_error[2] += error[2];
     }
     
@@ -251,18 +216,9 @@ void move_motor_3() {
     // Calculate the control input.
     // This automatically casts the integral control input to an int from a float.
     pwm_controls[2] = error[2] * Kp_qd + integral_error[2] * Ki_qd + deriv_error[2] * Kd_qd;
-    // store an absolute-value version for actual application.
-    int16 pwm_control_2_abs = abs(pwm_controls[2]);
+    // Shift by *300* (determined by PWM clock and period right now) to put PWM values in correct range for VESC
+    int32 pwm_control_2 = pwm_controls[2] + 300;
     
-    // Determine direction of rotation
-    if (pwm_controls[2] > 0) {
-        Pin_High_3_Write(1);
-        Pin_Low_3_Write(0);
-    }
-    else {
-        Pin_High_3_Write(0);
-        Pin_Low_3_Write(1);
-    }   
     
     // Apply the PWM value. Five options:
     // 1) If we're within tolerance of the target, turn off the PWM.
@@ -270,40 +226,42 @@ void move_motor_3() {
     // 3) If not within tolerance, lower bound with PWM_MIN.
     // 4) If not within tolerance and input less than max, apply the calculated input.
     // 5) If not within tolerance, upper bound with PWM_MAX.
-    
-    // 1) Is absolute encoder value within tolerance?
+
+        // 1) Is absolute encoder value within tolerance?
     if (abs(error[2]) < TICKS_STOP_QD){
-        PWM_3_WriteCompare(0);    
+        PWM_3_WriteCompare(PWM_STOP);    
         motor_3 = 0;
         // minor hack for now:
         // reset the integral terms, so this is a "stopping point"
         integral_error[2] = 0;
-        // Here, since we're set back to "stop", reset the first loop flag
-        // so that next time, init is applied.
-        first_loop_3 = 1;
+        // reset error, so this is a "stopping point"
+        error[2] = 0;
     }
-    // Otherwise, do 2-5.
+    // Otherwise if havent reached tolerance, do 2-5.
     else {
-        // 2) If this is the first application of a control for this "round",
-        // apply something to break static friction.
-        if (first_loop_3 == 1) {
-            PWM_3_WriteCompare(PWM_INIT);
-            first_loop_3 = 0;
-        }
         // 5) Check if upper bounded.
-        else if (pwm_control_2_abs > PWM_MAX) { 
-            PWM_3_WriteCompare(PWM_MAX); 
+        if (pwm_control_2 > PWM_CW_MAX) { 
+            PWM_3_WriteCompare(PWM_CW_MAX); 
         }
         // 3) Check if lower bounded.
-        else if (pwm_control_2_abs < PWM_MIN) {
-            PWM_3_WriteCompare(PWM_MIN); 
+        else if (pwm_control_2 < PWM_CCW_MIN) {
+            PWM_3_WriteCompare(PWM_CCW_MIN); 
         }
-        // 4) otherwise, we know we're within the min to max.
+        // 6) Check if below lower bound for CW.
+        else if ((pwm_control_2 <= PWM_CW_MIN) && (pwm_control_2 > PWM_STOP)) {
+            PWM_3_WriteCompare(PWM_CW_MIN);
+        }
+        // 7) Check if above upper bound for CCW.
+        else if ((pwm_control_2 < PWM_STOP) && (pwm_control_2 >= PWM_CCW_MAX)) {
+            PWM_3_WriteCompare(PWM_CCW_MAX);
+        }
+        // 8) otherwise, we know we're within the min to max.
         else {
              // This, right here, is the actual application of our control signal.
-            PWM_3_WriteCompare(pwm_control_2_abs); 
+            PWM_3_WriteCompare(pwm_control_2); 
         }
     }
+    
     // Finally, set the stored value for the next iteration's error term.
     // It's safest to do this all the way at the end.
     prev_error[2] = error[2];
@@ -315,7 +273,7 @@ void move_motor_4() {
     
     // Integral term: discretized integration = addition (scaled.)
     // Note that we have to prevent integer overflow here.
-    if((integral_error[3] + error[3] >= INT16_LOWERBOUND) && (integral_error[3] + error[3] <= INT16_UPPERBOUND)){
+    if((integral_error[3] + error[3] >= INT32_LOWERBOUND) && (integral_error[3] + error[3] <= INT32_UPPERBOUND)){
         integral_error[3] += error[3];
     }
     
@@ -325,18 +283,9 @@ void move_motor_4() {
     // Calculate the control input.
     // This automatically casts the integral control input to an int from a float.
     pwm_controls[3] = error[3] * Kp_qd + integral_error[3] * Ki_qd + deriv_error[3] * Kd_qd;
-    // store an absolute-value version for actual application.
-    int16 pwm_control_3_abs = abs(pwm_controls[3]);
+        // Shift by *300* (determined by PWM clock and period right now) to put PWM values in correct range for VESC
+    int32 pwm_control_3 = pwm_controls[3] + 300;
     
-    // Determine direction of rotation
-    if (pwm_controls[3] > 0) {
-        Pin_High_4_Write(1);
-        Pin_Low_4_Write(0);
-    }
-    else {
-        Pin_High_4_Write(0);
-        Pin_Low_4_Write(1);
-    }   
     
     // Apply the PWM value. Five options:
     // 1) If we're within tolerance of the target, turn off the PWM.
@@ -344,40 +293,42 @@ void move_motor_4() {
     // 3) If not within tolerance, lower bound with PWM_MIN.
     // 4) If not within tolerance and input less than max, apply the calculated input.
     // 5) If not within tolerance, upper bound with PWM_MAX.
-    
-    // 1) Is absolute encoder value within tolerance?
+
+        // 1) Is absolute encoder value within tolerance?
     if (abs(error[3]) < TICKS_STOP_QD){
-        PWM_4_WriteCompare(0);    
+        PWM_4_WriteCompare(PWM_STOP);    
         motor_4 = 0;
         // minor hack for now:
         // reset the integral terms, so this is a "stopping point"
         integral_error[3] = 0;
-        // Here, since we're set back to "stop", reset the first loop flag
-        // so that next time, init is applied.
-        first_loop_4 = 1;
+        // reset error, so this is a "stopping point"
+        error[3] = 0;
     }
-    // Otherwise, do 2-5.
+    // Otherwise if havent reached tolerance, do 2-5.
     else {
-        // 2) If this is the first application of a control for this "round",
-        // apply something to break static friction.
-        if (first_loop_4 == 1) {
-            PWM_4_WriteCompare(PWM_INIT);
-            first_loop_4 = 0;
-        }
         // 5) Check if upper bounded.
-        else if (pwm_control_3_abs > PWM_MAX) { 
-            PWM_4_WriteCompare(PWM_MAX); 
+        if (pwm_control_3 > PWM_CW_MAX) { 
+            PWM_4_WriteCompare(PWM_CW_MAX); 
         }
         // 3) Check if lower bounded.
-        else if (pwm_control_3_abs < PWM_MIN) {
-            PWM_4_WriteCompare(PWM_MIN); 
+        else if (pwm_control_3 < PWM_CCW_MIN) {
+            PWM_4_WriteCompare(PWM_CCW_MIN); 
         }
-        // 4) otherwise, we know we're within the min to max.
+        // 6) Check if below lower bound for CW.
+        else if ((pwm_control_3 <= PWM_CW_MIN) && (pwm_control_3 > PWM_STOP)) {
+            PWM_4_WriteCompare(PWM_CW_MIN);
+        }
+        // 7) Check if above upper bound for CCW.
+        else if ((pwm_control_3 < PWM_STOP) && (pwm_control_3 >= PWM_CCW_MAX)) {
+            PWM_4_WriteCompare(PWM_CCW_MAX);
+        }
+        // 8) otherwise, we know we're within the min to max.
         else {
              // This, right here, is the actual application of our control signal.
-            PWM_4_WriteCompare(pwm_control_3_abs); 
+            PWM_4_WriteCompare(pwm_control_3); 
         }
     }
+    
     // Finally, set the stored value for the next iteration's error term.
     // It's safest to do this all the way at the end.
     prev_error[3] = error[3];

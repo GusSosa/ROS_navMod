@@ -107,30 +107,25 @@ void UART_Command_Parser() {
             // Print out a message according to how much was parsed.
             if( num_filled == 4 ){
                 // Return the resulting data that was stored. First, in original input units:
-                //sprintf(transmit_buffer, "Stored an input, in cm, of %f, %f, %f, %f\r\n", current_control[0],
-                //    current_control[1], current_control[2], current_control[3]);
+
                 // Calculate the control inputs in terms of encoder ticks.
                 // Assignment to an int automatically casts the float.
-                //float radius = 1.063087;
-                //float ticks_per_rev_man = 1185.36;
-                float ticks_per_rev_qd = 4741.44;
-                //float radius = 0.5;
-                // casting occurs automatically here.
+
+                // Encoder res = 512 counts per turn, Gear res = 850.3056:1 reduction 
+                float ticks_per_rev = 435356.467;
+
                 // TO-DO: replace with the #define'd constants. More efficient.
-                // We use the number of ticks according to either our manual counting or
-                // the quad dec component's counting.
-                current_control[0] = (ticks_per_rev_qd*control_in_cm[0])/(2*3.1415*RADIUS);
-                current_control[1] = (ticks_per_rev_qd*control_in_cm[1])/(2*3.1415*RADIUS);
-                current_control[2] = (ticks_per_rev_qd*control_in_cm[2])/(2*3.1415*RADIUS);
-                current_control[3] = (ticks_per_rev_qd*control_in_cm[3])/(2*3.1415*RADIUS);
-                sprintf(transmit_buffer, "Stored an input, converted to encoder ticks, of %i, %i, %i, %i\r\n", current_control[0],
+                
+                // NEW CONTROL
+                current_control[0] = (-1*control_in_cm[0]*ticks_per_rev)/(2*PI*RADIUS);
+                current_control[1] = (control_in_cm[1]*ticks_per_rev)/(2*PI*RADIUS);
+                current_control[2] = (-1*control_in_cm[2]*ticks_per_rev)/(2*PI*RADIUS);
+                current_control[3] = (control_in_cm[3]*ticks_per_rev)/(2*PI*RADIUS);
+                
+                sprintf(transmit_buffer, "Stored an input, converted to encoder ticks, of %li, %li, %li, %li\r\n", current_control[0],
                     current_control[1], current_control[2], current_control[3]);
                 tensioning = 0;
                 controller_status = 1;
-                first_loop_1 = 1;
-                first_loop_2 = 1;
-                first_loop_3 = 1;
-                first_loop_4 = 1;
                 motor_1 = 1;
                 motor_2 = 1;
                 motor_3 = 1;
@@ -146,16 +141,22 @@ void UART_Command_Parser() {
         // query the encoder ticks (current positions.)
         case 'e':
             // values are held in "count."
-            sprintf(transmit_buffer, "Current encoder tick counts are %i, %i, %i, %i\r\n", QuadDec_Motor1_GetCounter(),
+            sprintf(transmit_buffer, "Current encoder tick counts are %li, %li, %li, %li\r\n", QuadDec_Motor1_GetCounter(),
                QuadDec_Motor2_GetCounter(), QuadDec_Motor3_GetCounter(), QuadDec_Motor4_GetCounter());
             break;
             
         // query current error signal (control input - encoder ticks.)
         case 'r':
             // values held in "error."
-            sprintf(transmit_buffer, "Current error signals are:\r\n P = {%i, %i, %i, %i}, \r\n I = {%i, %i, %i, %i}, \r\n D = {%i, %i, %i, %i}\r\n", error[0],
+            sprintf(transmit_buffer, "Current error signals are:\r\n P = {%li, %li, %li, %li}, \r\n I = {%li, %li, %li, %li}, \r\n D = {%li, %li, %li, %li}\r\n", error[0],
                 error[1], error[2], error[3], integral_error[0], integral_error[1], integral_error[2], 
                 integral_error[3], deriv_error[0], deriv_error[1], deriv_error[2], deriv_error[3]);
+            break;
+            
+        case 'p':
+            // current PWM value
+            sprintf(transmit_buffer, "Current control: %hu\r\n",PWM_1_ReadCompare());
+            
             break;
             
         // Tensioning command for small adjustments / calibration.
@@ -165,12 +166,12 @@ void UART_Command_Parser() {
             if (tension_control == 1) {
                 first_loop_1 = 1;
                 motor_1 = 1;
-                current_control[0] = current_control[0] + T_TICKS_QD;
+                current_control[0] = current_control[0] - T_TICKS_QD;
             }
             else if (tension_control == -1) {
                 first_loop_1 = 1;
                 motor_1 = 1;                
-                current_control[0] = current_control[0] - T_TICKS_QD;
+                current_control[0] = current_control[0] + T_TICKS_QD;
             }
             else if (tension_control == 2) {
                 first_loop_2 = 1;
@@ -185,12 +186,12 @@ void UART_Command_Parser() {
             else if (tension_control == 3) {
                 first_loop_3 = 1;
                 motor_3 = 1;
-                current_control[2] = current_control[2] + T_TICKS_QD;
+                current_control[2] = current_control[2] - T_TICKS_QD;
             }
             else if (tension_control == -3) {
                 first_loop_3 = 1;
                 motor_3 = 1;                
-                current_control[2] = current_control[2] - T_TICKS_QD;
+                current_control[2] = current_control[2] + T_TICKS_QD;
             }
             else if (tension_control == 4) {
                 first_loop_4 = 1;
@@ -204,7 +205,7 @@ void UART_Command_Parser() {
             }
             //tensioning = 1;
             controller_status = 1;
-            sprintf(transmit_buffer, "Adjusted tensions. Control inputs are now %i, %i, %i, %i\r\n", current_control[0],
+            sprintf(transmit_buffer, "Adjusted tensions. Control inputs are now %li, %li, %li, %li\r\n", current_control[0],
                     current_control[1], current_control[2], current_control[3]);
             break;
             
@@ -248,7 +249,7 @@ void UART_Command_Parser() {
             
         case 'q':
             // query the state of the store control commands.
-            sprintf(transmit_buffer, "Current control inputs are (in encoder ticks): %i, %i, %i, %i\r\n", current_control[0],
+            sprintf(transmit_buffer, "Current control inputs are (in encoder ticks): %li, %li, %li, %li\r\n", current_control[0],
                     current_control[1], current_control[2], current_control[3]);
             break;
             
