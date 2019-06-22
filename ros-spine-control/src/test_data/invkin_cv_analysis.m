@@ -89,7 +89,10 @@ test_structs = {};
 % % store it
 % test_structs{1} = struct1;
 
-% For the May 16th, 2019 test:
+% ...accidentally deleted the parameters for the May 16th test, look at
+% past commits if needed.
+
+% For the June 21st, 2019 test with some errors in it (4:15pm):
 struct1.datetime_cv ='2019-6-21_161626';
 struct1.datetime_invkin = '2019-6-21_161621';
 %struct1.start_row_cv = 102;
@@ -100,9 +103,19 @@ struct1.end_row_cv = 850;
 % store it
 test_structs{1} = struct1;
 
-% For the June 21st, 2019 test:
+% For the June 21st, 2019 test (5:20pm):
+struct1.datetime_cv ='2019-6-21_171326';
+struct1.datetime_invkin = '2019-6-21_171327';
+%struct1.start_row_cv = 102;
+struct1.start_row_cv = 15;
+% struct1.end_row_cv = -1;
+struct1.end_row_cv = 870;
+% note that the rows for IK are pre-specified: just 2 to end.
+% store it
+test_structs{1} = struct1;
 
-
+%%%% For those tests, need to ISOLATE the upward swing!
+% Right now, we're accidentally doing both up and down.
 
 % Call the parser
 errors = invkin_test_error_analysis(test_structs, filepath);
