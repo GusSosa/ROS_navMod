@@ -42,6 +42,7 @@ end_row_cv = -1;
 % % store it
 % test_structs{1} = struct1;
 
+%%%%%% GOOD
 % For the June 21st, 2019 test (5:20pm):
 struct2.datetime_cv ='2019-6-21_171326';
 struct2.datetime_invkin = '2019-6-21_171327';
@@ -49,15 +50,52 @@ struct2.start_row_cv = 293;
 % struct2.end_row_cv = 870;
 struct2.end_row_cv = end_row_cv;
 % store it
-test_structs{end+1} = struct2;
+% test_structs{end+1} = struct2;
 
+
+%%%%%% GOOD
 % For the June 23rd, 2019 test (5:00pm):
 struct3.datetime_cv ='2019-6-23_170052';
 struct3.datetime_invkin = '2019-6-23_170050';
 struct3.start_row_cv = 230;
 struct3.end_row_cv = end_row_cv;
 % store it
-test_structs{end+1} = struct3;
+% test_structs{end+1} = struct3;
+
+% % For the 2019-06-24, 10:06am:
+% struct4.datetime_cv ='2019-6-24_100625';
+% struct4.datetime_invkin = '2019-6-24_100623';
+% struct4.start_row_cv = 292;
+% struct4.end_row_cv = end_row_cv;
+% % store it
+% test_structs{end+1} = struct4;
+
+%%%%%%% GOOD
+% For the 2019-06-24, 10:19am:
+struct4.datetime_cv ='2019-6-24_101957';
+struct4.datetime_invkin = '2019-6-24_101955';
+struct4.start_row_cv = 303;
+struct4.end_row_cv = end_row_cv;
+% store it
+% test_structs{end+1} = struct4;
+
+%%%%%%% GOOD
+% For the 2019-06-24, 10:31am:
+struct5.datetime_cv ='2019-6-24_103132';
+struct5.datetime_invkin = '2019-6-24_103130';
+struct5.start_row_cv = 261;
+struct5.end_row_cv = end_row_cv;
+% store it
+% test_structs{end+1} = struct5;
+
+%%%%%%% GOOD
+% For the 2019-06-24, 10:42am:
+struct5.datetime_cv ='2019-6-24_104218';
+struct5.datetime_invkin = '2019-6-24_104219';
+struct5.start_row_cv = 313;
+struct5.end_row_cv = end_row_cv;
+% store it
+test_structs{end+1} = struct5;
 
 
 %%%% For those tests, need to ISOLATE the upward swing!
