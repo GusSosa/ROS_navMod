@@ -4,7 +4,7 @@
 % control test. 
 % To be used with the ros-spine-control packages and related.
 
-function [ errors ] = invkin_test_error_analysis(test_structs, path_to_data_folder)
+function [ errors ] = invstat_test_error_analysis(test_structs, path_to_data_folder)
 % Inputs:
 %
 %   test_structs = a cell array, where each element has a struct in it that
@@ -78,8 +78,12 @@ for i=1:num_tests
     end
     
     % The inverse kinematics one is easier, since the rows are known.
+    %%%%% FOR THE UP-DOWN SWING TEST: the upward swing actually starts at
+    %%%%% row 42, indexed from zero is 41.
+    data_ik_i = csvread(file_path_invkin, 41, 0);
+    
     % Starts at third row (indexed from zero is 2.)
-    data_ik_i = csvread(file_path_invkin, 2, 0);
+%     data_ik_i = csvread(file_path_invkin, 2, 0);
     % Pick out the data similar to the cv.
     % We're interested in body 2, which is indices 5:7.
     errors{i}.timestamps_ik = data_ik_i(:, 1);

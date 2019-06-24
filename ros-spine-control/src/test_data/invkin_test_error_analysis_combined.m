@@ -5,6 +5,8 @@
 % For the 2D MPC results.
 
 % July 2018 - for inverse kinematics.
+%
+%%%%%%%%%%%%%%%%% UNUSED AS OF JUNE 2019
 
 function [errors1, errors2] = invkin_error_analysis_combined_2D( file_name1, file_name2, path_to_data_folder, plots_flag )
 % Inputs:

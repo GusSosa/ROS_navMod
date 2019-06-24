@@ -1,3 +1,14 @@
+%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%
+
+% DEPRECATED AS OF JUNE 2016
+
+%%%%%%%%%%%%%
+%%%%%%%%%%%%%
+%%%%%%%%%%%%%
+
+
 % invkin_cv_analysis.m
 % Analyzes the hardware test's computer vision and inverse kinematics
 % outputs.
