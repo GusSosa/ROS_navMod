@@ -308,8 +308,25 @@ y_all_err = zeros(numNewPts, num_tests);
 theta_all_err = zeros(numNewPts, num_tests);
 
 % distance errors are sqrt(errX^2 + errY^2)
+distFromMeanX = zeros(numNewPts, num_tests);
+distFromMeanY = zeros(numNewPts, num_tests);
 distErr = zeros(numNewPts, num_tests);
 
+%%%%%%%%%%%%%%%%%%%%%
+% actually, this distance error is not what we want.
+%
+% What we want to talk about is the distance between the AVERAGE position
+% and each trajectory.
+% Because there's a trend in the distances: for example, all Y are
+% negative.
+% Thus we don't want to plot a circle that implies possible positive Y
+% errors, since we didn't observe any.
+%
+% The right number to use will be:
+% CV error from mean in each direction at each point
+% distance of THAT number
+% mean of THAT number
+% plotted around the CV mean 
 
 % Fill them in per test
 % this is really inefficient
@@ -327,7 +344,7 @@ for i=1:num_tests
     theta_all_err(:, i) = errors{i}.interpStateErr(:,3);
     
     % the distance error for this test, all timesteps, is
-    distErr(:,i) = sqrt(x_all_err(:,i).^2 + y_all_err(:,i).^2);
+%     distErr(:,i) = sqrt(x_all_err(:,i).^2 + y_all_err(:,i).^2);
 end
 
 % Get the mean for each signal.
@@ -336,7 +353,7 @@ meansIS = zeros(numNewPts, 3);
 meansErr = zeros(numNewPts, 3);
 % we'll be plotting little circles of the average distance error at each
 % pose.
-meansDistErr = zeros(numNewPts, 1);
+% meansDistErr = zeros(numNewPts, 1);
 
 meansCV(:,1) = mean(x_all_CV, 2);
 meansCV(:,2) = mean(y_all_CV, 2);
@@ -350,23 +367,17 @@ meansErr(:,1) = mean(x_all_err, 2);
 meansErr(:,2) = mean(y_all_err, 2);
 meansErr(:,3) = mean(theta_all_err, 2);
 
-% meansDistErr = mean(distErr, 2);
+% now, need to loop through again, and calculate the difference from mean
+% CV for each traj.
+for i=1:num_tests
+    distFromMeanX(:,i) = x_all_CV(:,i) - meansCV(:,1);
+    distFromMeanY(:,i) = y_all_CV(:,i) - meansCV(:,2);
+    % the distance error for this test, all timesteps, is
+    distErr(:,i) = sqrt(distFromMeanX(:,i).^2 + distFromMeanY(:,i).^2);
+end
 
-%%%%%%%%%%%%%%%%%%%%%
-% actually, this distance error is not what we want.
-%
-% What we want to talk about is the distance between the AVERAGE position
-% and each trajectory.
-% Because there's a trend in the distances: for example, all Y are
-% negative.
-% Thus we don't want to plot a circle that implies possible positive Y
-% errors, since we didn't observe any.
-%
-% The right number to use will be:
-% CV error from mean in each direction at each point
-% distance of THAT number
-% mean of THAT number
-% plotted around the CV mean 
+% finally,
+meansDistErr = mean(distErr, 2);
 
 means.meansCv = meansCV;
 means.meansIS = meansIS;
@@ -505,7 +516,7 @@ set(refline_handle, 'LineStyle', '--', 'Color', 'k', 'LineWidth', 0.5);
 ylabel('X (cm)');
 % Only create a title for the first plot, that will serve for all the others too.
 %title('Tracking Errors in X Y Z  \theta \gamma \psi');
-title(' State Errors, Inverse Statics Test');
+title('   State Errors, Inverse Statics Control Test');
 set(gca,'FontSize',fontsize);
 % Scale the plot. A good scale here is...
 % ylim([-0.6 0.6]);
