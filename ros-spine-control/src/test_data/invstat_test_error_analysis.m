@@ -350,7 +350,23 @@ meansErr(:,1) = mean(x_all_err, 2);
 meansErr(:,2) = mean(y_all_err, 2);
 meansErr(:,3) = mean(theta_all_err, 2);
 
-meansDistErr = mean(distErr, 2);
+% meansDistErr = mean(distErr, 2);
+
+%%%%%%%%%%%%%%%%%%%%%
+% actually, this distance error is not what we want.
+%
+% What we want to talk about is the distance between the AVERAGE position
+% and each trajectory.
+% Because there's a trend in the distances: for example, all Y are
+% negative.
+% Thus we don't want to plot a circle that implies possible positive Y
+% errors, since we didn't observe any.
+%
+% The right number to use will be:
+% CV error from mean in each direction at each point
+% distance of THAT number
+% mean of THAT number
+% plotted around the CV mean 
 
 means.meansCv = meansCV;
 means.meansIS = meansIS;
@@ -360,16 +376,56 @@ means.meansDistErr = meansDistErr;
 %% Useful Statistics
 
 % We're going to do the following plots:
-%   2D X-Y: put a set of 2-norm standard error circles around each sample,
-%   which will look like overlapping circles. For this, need 
-%       - distance error
-%       - standard error of the distance
-%   
+%
 %   Individual subplots:
 %       - standard deviation for each timestep / SEM
 %       - mean +/- SEM for each plot, to shade a region. (MATLAB's 'area'.)
 
-% standard errors are (stdev)/sqrt(numNewPts)
+% standard errors are (stdev)/sqrt(num_tests)
+% we're interested in the stddev of the mean
+stddev_x = (std(x_all_err'))';
+stddev_y = (std(y_all_err'))';
+stddev_theta = (std(theta_all_err'))';
+
+dof = sqrt(num_tests);
+sem_x = stddev_x./dof;
+sem_y = stddev_y./dof;
+sem_theta = stddev_theta./dof;
+
+% Get the bounding curves for each plot. adjust the mean by +/- the sem
+meansErrUpper = zeros(numNewPts, 3);
+meansErrLower = zeros(numNewPts, 3);
+% do each individually.
+% meansErrUpper(:,1) = meansErr(:,1) + sem_x;
+% meansErrUpper(:,2) = meansErr(:,2) + sem_y;
+% meansErrUpper(:,3) = meansErr(:,3) + sem_theta;
+% meansErrLower(:,1) = meansErr(:,1) - sem_x;
+% meansErrLower(:,2) = meansErr(:,2) - sem_y;
+% meansErrLower(:,3) = meansErr(:,3) - sem_theta;
+
+%%%%%%%%%%%%%%%%% IT APPEARS that the SEM isn't what to use here. It's the
+%%%%%%%%%%%%%%%%% standard deviation itself that makes more sense.
+meansErrUpper(:,1) = meansErr(:,1) + stddev_x;
+meansErrUpper(:,2) = meansErr(:,2) + stddev_y;
+meansErrUpper(:,3) = meansErr(:,3) + stddev_theta;
+meansErrLower(:,1) = meansErr(:,1) - stddev_x;
+meansErrLower(:,2) = meansErr(:,2) - stddev_y;
+meansErrLower(:,3) = meansErr(:,3) - stddev_theta;
+
+% We need a corrected time axis for the horizontal here.
+% All tests had minor variations, BUT we do know when the IS commands were
+% sent: 0 to 80 sec, one command per second. 
+% So, do an axis for the idealized/corrected case.
+correctedTimeAxis = linspace(1, 80, numNewPts);
+
+% We'll need a time axis for the fill.
+% newtimeaxis = 1:numNewPts;
+% and concatenate to some new points 
+% (thanks to
+% https://www.mathworks.com/matlabcentral/answers/180829-shade-area-between-graphs)
+% timeFill = [newtimeaxis, fliplr(newtimeaxis)];
+timeFill = [correctedTimeAxis, fliplr(correctedTimeAxis)];
+
 % ...though this is a bit wishy washy with our interpolation so the data is
 % correlated to each other, so numNewPts doesn't have statistical meaning.
 
@@ -432,8 +488,15 @@ set(errors_handle,'Position',[100,100,500,350]);
 % Start the first subplot
 subplot_handle = subplot(3, 1, 1);
 hold on;
+% Fill in area for the SEM 
+inBetween = [meansErrLower(:,1)', fliplr(meansErrUpper(:,1)')];
+fill(timeFill, inBetween, circleColor, 'EdgeColor', circleColor);
 % Plot the X errors
-plot(meansErr(:,1), 'Color', 'm', 'LineWidth', 2)
+% plot(meansErrUpper(:,1), 'Color', 'b', 'LineWidth', 2)
+% plot(meansErr(:,1), 'Color', 'r', 'LineWidth', 2)
+plot(correctedTimeAxis, meansErr(:,1), 'Color', 'r', 'LineWidth', 2)
+% plot(meansErrLower(:,1), 'Color', 'g', 'LineWidth', 2)
+
 % Plot the zero line
 %plot(t, zero_line, 'b-', 'LineWidth','1');
 refline_handle = refline(0,0);
@@ -442,10 +505,13 @@ set(refline_handle, 'LineStyle', '--', 'Color', 'k', 'LineWidth', 0.5);
 ylabel('X (cm)');
 % Only create a title for the first plot, that will serve for all the others too.
 %title('Tracking Errors in X Y Z  \theta \gamma \psi');
-title('   State Errors, Inverse Statics Control Test');
+title(' State Errors, Inverse Statics Test');
 set(gca,'FontSize',fontsize);
 % Scale the plot. A good scale here is...
-ylim([-0.6 0.6]);
+% ylim([-0.6 0.6]);
+ylim([-0.3 0.3]);
+% xlim([0 705]);
+xlim([0 82]);
 
 % Make the legend
 %nodisturblabel = sprintf('No Noise');
@@ -457,8 +523,13 @@ hold off;
 % Plot the Y errors
 subplot_handle = subplot(3,1,2);
 hold on;
-% Plot the X errors
-plot(meansErr(:,2), 'Color', 'm', 'LineWidth', 2);
+% Fill in area for the SEM 
+inBetween = [meansErrLower(:,2)', fliplr(meansErrUpper(:,2)')];
+fill(timeFill, inBetween, circleColor, 'EdgeColor', circleColor);
+% Plot the Y errors
+% plot(meansErr(:,2), 'Color', 'r', 'LineWidth', 2);
+plot(correctedTimeAxis, meansErr(:,2), 'Color', 'r', 'LineWidth', 2);
+
 % Plot the zero line
 %plot(t, zero_line, 'b-', 'LineWidth','1');
 refline_handle = refline(0,0);
@@ -470,7 +541,11 @@ ylabel('Y (cm)');
 % Adjust by roughly the amount we scaled the disturbances: 1/6 of the
 % length. Plus a small change to make the numbers prettier, about -(1/3)+0.05
 %ylim([-0.2, (7/12)-0.1]); 
-ylim([-1.5, 1.5]);    
+% ylim([-1.5, 1.5]);    
+ylim([-0.8, 0.8]);
+% xlim([0 705]);
+xlim([0 82]);
+
 set(gca,'FontSize',fontsize);
 
 hold off;
@@ -478,7 +553,12 @@ hold off;
 % Plot the gamma errors
 subplot_handle = subplot(3,1,3);
 hold on;
-plot(meansErr(:,3), 'Color', 'm', 'LineWidth', 2);
+% Fill in area for the SEM 
+inBetween = [meansErrLower(:,3)', fliplr(meansErrUpper(:,3)')];
+fill(timeFill, inBetween, circleColor, 'EdgeColor', circleColor);
+% plot(meansErr(:,3), 'Color', 'r', 'LineWidth', 2);
+plot(correctedTimeAxis, meansErr(:,3), 'Color', 'r', 'LineWidth', 2);
+
 % Plot the zero line
 %plot(t, zero_line, 'b-', 'LineWidth','1');
 refline_handle = refline(0,0);
@@ -487,7 +567,11 @@ set(refline_handle, 'LineStyle', '--', 'Color', 'k', 'LineWidth', 0.5);
 %xlabel('Time (msec)');
 ylabel('\theta (deg)');
 %title('Tracking Error in Y');
-ylim([-6 6]);
+% ylim([-6 6]);
+ylim([-2.8, 2.8]);
+% xlim([0 705]);
+xlim([0 82]);
+
 % Move the plot very slightly to the left
 % For these lower figures, move them upwards a bit more.
 %P = get(subplot_handle,'Position')
@@ -495,6 +579,11 @@ ylim([-6 6]);
 
 % Finally, a label in X at the bottom
 xlabel('Time (sec)');
+% xlabel('Pose number (index $\propto$ time)');
+
+% Here's a bit of an approximation for physical understanding purposes.
+% It's 
+
 set(gca,'FontSize',fontsize);
 
 hold off;
