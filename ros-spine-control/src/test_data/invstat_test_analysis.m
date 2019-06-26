@@ -98,23 +98,23 @@ struct7.end_row_cv = end_row_cv;
 % store it
 test_structs{end+1} = struct7;
 
-%%%%%%% MEH
-% For the 2019-06-24, 3:10pm:
-struct8.datetime_cv ='2019-6-24_151049';
-struct8.datetime_invkin = '2019-6-24_151048';
-struct8.start_row_cv = 280;
-struct8.end_row_cv = end_row_cv;
-% store it
-% test_structs{end+1} = struct8;
+% %%%%%%% MEH
+% % For the 2019-06-24, 3:10pm:
+% struct8.datetime_cv ='2019-6-24_151049';
+% struct8.datetime_invkin = '2019-6-24_151048';
+% struct8.start_row_cv = 280;
+% struct8.end_row_cv = end_row_cv;
+% % store it
+% % test_structs{end+1} = struct8;
 
-%%%%%%% MEH
-% For the 2019-06-24, 3:30pm:
-struct9.datetime_cv ='2019-6-24_152751';
-struct9.datetime_invkin = '2019-6-24_152752';
-struct9.start_row_cv = 294;
-struct9.end_row_cv = end_row_cv;
-% store it
-% test_structs{end+1} = struct9;
+% %%%%%%% MEH
+% % For the 2019-06-24, 3:30pm:
+% struct9.datetime_cv ='2019-6-24_152751';
+% struct9.datetime_invkin = '2019-6-24_152752';
+% struct9.start_row_cv = 294;
+% struct9.end_row_cv = end_row_cv;
+% % store it
+% % test_structs{end+1} = struct9;
 
 %%%%%%% GOOD
 % For the 2019-06-24, 3:56pm:
@@ -153,11 +153,8 @@ struct13.end_row_cv = end_row_cv;
 test_structs{end+1} = struct13;
 
 
-%%%% For those tests, need to ISOLATE the upward swing!
-% Right now, we're accidentally doing both up and down.
-
 % Call the parser
-errors = invstat_test_error_analysis(test_structs, filepath);
+[errors, means] = invstat_test_error_analysis(test_structs, filepath);
 
 
 
