@@ -2,7 +2,7 @@
 %%%%%%%%%%%%%%
 %%%%%%%%%%%%%%
 
-% DEPRECATED AS OF JUNE 2016
+% DEPRECATED AS OF JUNE 2019
 
 %%%%%%%%%%%%%
 %%%%%%%%%%%%%

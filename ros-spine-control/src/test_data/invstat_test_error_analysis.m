@@ -520,9 +520,15 @@ title('   State Errors, Inverse Statics Control Test');
 set(gca,'FontSize',fontsize);
 % Scale the plot. A good scale here is...
 % ylim([-0.6 0.6]);
-ylim([-0.3 0.3]);
+
+% Used in Drew's dissertation:
+% ylim([-0.3 0.3]);
+% For same dimensions as Z errors:
+ylim([-0.8 0.8]);
+
 % xlim([0 705]);
 xlim([0 82]);
+
 
 % Make the legend
 %nodisturblabel = sprintf('No Noise');
