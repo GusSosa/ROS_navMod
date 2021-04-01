@@ -23,9 +23,9 @@ from std_msgs.msg import Float32MultiArray
 # Now, we've got our own message type.
 from spine_controller.msg import InvkinControlCommand
 
-# The primary helper function here opens the csv file,
-# stores the results in a numpy array, and publishes rows of that array
-# to a topic at a hard-coded interval
+# The primary helper function here opens the csv file, //abre el archivo csv
+# stores the results in a numpy array, and publishes rows of that array //guarda el resultado en numpy array, y publica la fila
+# to a topic at a hard-coded interval //en el topic
 
 
 def tx_to_topic(file_name):

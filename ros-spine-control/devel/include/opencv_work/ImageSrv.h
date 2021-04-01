@@ -57,8 +57,8 @@ struct DataType< ::opencv_work::ImageSrv > {
 };
 
 
-// service_traits::MD5Sum< ::opencv_work::ImageSrvRequest> should match 
-// service_traits::MD5Sum< ::opencv_work::ImageSrv > 
+// service_traits::MD5Sum< ::opencv_work::ImageSrvRequest> should match
+// service_traits::MD5Sum< ::opencv_work::ImageSrv >
 template<>
 struct MD5Sum< ::opencv_work::ImageSrvRequest>
 {
@@ -72,8 +72,8 @@ struct MD5Sum< ::opencv_work::ImageSrvRequest>
   }
 };
 
-// service_traits::DataType< ::opencv_work::ImageSrvRequest> should match 
-// service_traits::DataType< ::opencv_work::ImageSrv > 
+// service_traits::DataType< ::opencv_work::ImageSrvRequest> should match
+// service_traits::DataType< ::opencv_work::ImageSrv >
 template<>
 struct DataType< ::opencv_work::ImageSrvRequest>
 {
@@ -87,8 +87,8 @@ struct DataType< ::opencv_work::ImageSrvRequest>
   }
 };
 
-// service_traits::MD5Sum< ::opencv_work::ImageSrvResponse> should match 
-// service_traits::MD5Sum< ::opencv_work::ImageSrv > 
+// service_traits::MD5Sum< ::opencv_work::ImageSrvResponse> should match
+// service_traits::MD5Sum< ::opencv_work::ImageSrv >
 template<>
 struct MD5Sum< ::opencv_work::ImageSrvResponse>
 {
@@ -102,8 +102,8 @@ struct MD5Sum< ::opencv_work::ImageSrvResponse>
   }
 };
 
-// service_traits::DataType< ::opencv_work::ImageSrvResponse> should match 
-// service_traits::DataType< ::opencv_work::ImageSrv > 
+// service_traits::DataType< ::opencv_work::ImageSrvResponse> should match
+// service_traits::DataType< ::opencv_work::ImageSrv >
 template<>
 struct DataType< ::opencv_work::ImageSrvResponse>
 {

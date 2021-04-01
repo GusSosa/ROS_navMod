@@ -66,6 +66,21 @@ ros::message_operations::Printer< ::spine_controller::InvkinControlCommand_<Cont
 return s;
 }
 
+
+template<typename ContainerAllocator1, typename ContainerAllocator2>
+bool operator==(const ::spine_controller::InvkinControlCommand_<ContainerAllocator1> & lhs, const ::spine_controller::InvkinControlCommand_<ContainerAllocator2> & rhs)
+{
+  return lhs.invkin_control == rhs.invkin_control &&
+    lhs.invkin_ref_state == rhs.invkin_ref_state;
+}
+
+template<typename ContainerAllocator1, typename ContainerAllocator2>
+bool operator!=(const ::spine_controller::InvkinControlCommand_<ContainerAllocator1> & lhs, const ::spine_controller::InvkinControlCommand_<ContainerAllocator2> & rhs)
+{
+  return !(lhs == rhs);
+}
+
+
 } // namespace spine_controller
 
 namespace ros
@@ -73,12 +88,6 @@ namespace ros
 namespace message_traits
 {
 
-
-
-// BOOLTRAITS {'IsFixedSize': False, 'IsMessage': True, 'HasHeader': False}
-// {'spine_controller': ['/home/drew/repositories/2d-spine-control-hardware/ros-spine-control/src/spine_controller/msg'], 'std_msgs': ['/opt/ros/melodic/share/std_msgs/cmake/../msg']}
-
-// !!!!!!!!!!! ['__class__', '__delattr__', '__dict__', '__doc__', '__eq__', '__format__', '__getattribute__', '__hash__', '__init__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', '_parsed_fields', 'constants', 'fields', 'full_name', 'has_header', 'header_present', 'names', 'package', 'parsed_fields', 'short_name', 'text', 'types']
 
 
 

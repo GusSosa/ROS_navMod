@@ -56,7 +56,7 @@ class ImageSrvRequest {
   static messageDefinition() {
     // Returns full string definition for message
     return `
-    
+    # An empty request
     
     `;
   }
@@ -122,7 +122,7 @@ class ImageSrvResponse {
   static messageDefinition() {
     // Returns full string definition for message
     return `
-    
+    # A response containing image data
     sensor_msgs/Image image_data
     
     

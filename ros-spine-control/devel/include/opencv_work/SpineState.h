@@ -71,6 +71,22 @@ ros::message_operations::Printer< ::opencv_work::SpineState_<ContainerAllocator>
 return s;
 }
 
+
+template<typename ContainerAllocator1, typename ContainerAllocator2>
+bool operator==(const ::opencv_work::SpineState_<ContainerAllocator1> & lhs, const ::opencv_work::SpineState_<ContainerAllocator2> & rhs)
+{
+  return lhs.rotation == rhs.rotation &&
+    lhs.comy == rhs.comy &&
+    lhs.comx == rhs.comx;
+}
+
+template<typename ContainerAllocator1, typename ContainerAllocator2>
+bool operator!=(const ::opencv_work::SpineState_<ContainerAllocator1> & lhs, const ::opencv_work::SpineState_<ContainerAllocator2> & rhs)
+{
+  return !(lhs == rhs);
+}
+
+
 } // namespace opencv_work
 
 namespace ros
@@ -78,12 +94,6 @@ namespace ros
 namespace message_traits
 {
 
-
-
-// BOOLTRAITS {'IsFixedSize': True, 'IsMessage': True, 'HasHeader': False}
-// {'std_msgs': ['/opt/ros/melodic/share/std_msgs/cmake/../msg'], 'opencv_work': ['/home/jmadden/2d-spine-control-hardware/ros-spine-control/src/opencv_work/msg'], 'sensor_msgs': ['/opt/ros/melodic/share/sensor_msgs/cmake/../msg'], 'geometry_msgs': ['/opt/ros/melodic/share/geometry_msgs/cmake/../msg']}
-
-// !!!!!!!!!!! ['__class__', '__delattr__', '__dict__', '__doc__', '__eq__', '__format__', '__getattribute__', '__hash__', '__init__', '__module__', '__ne__', '__new__', '__reduce__', '__reduce_ex__', '__repr__', '__setattr__', '__sizeof__', '__str__', '__subclasshook__', '__weakref__', '_parsed_fields', 'constants', 'fields', 'full_name', 'has_header', 'header_present', 'names', 'package', 'parsed_fields', 'short_name', 'text', 'types']
 
 
 
@@ -148,10 +158,10 @@ struct Definition< ::opencv_work::SpineState_<ContainerAllocator> >
 {
   static const char* value()
   {
-    return "float64 rotation\n\
-float64 comy\n\
-float64 comx\n\
-";
+    return "float64 rotation\n"
+"float64 comy\n"
+"float64 comx\n"
+;
   }
 
   static const char* value(const ::opencv_work::SpineState_<ContainerAllocator>&) { return value(); }

@@ -29,10 +29,12 @@ from rospy.numpy_msg import numpy_msg
 from spine_controller.msg import InvkinControlCommand
 # also need to echo back a string of the formatted output to the serial port.
 from std_msgs.msg import String
+from std_msgs.msg import Float32MultiArray
 
 # Note: in order to do publishing within a callback, we need to pass around
 # the publisher object, which is done much easier by making this a class.
-
+# Para poder publicar dentro de una devolucion de llamada, necesitamos pasar
+# el objeto del editor, lo cual se hace mucho mas facil al hacer de esto una clase.
 
 class SerialTxFromTopic:
 
@@ -44,7 +46,7 @@ class SerialTxFromTopic:
         # 3) publish the formatted string back out to another debugging topic
 
         # The ndarray is in
-        #invkin_command = np.array(message.data)
+        # invkin_command = np.array(message.data)
         # Let's do a string with the following format, which seems to work OK on the PSoC:
         # u (rl1) (rl2) ... (rln)
         # For example,
@@ -54,6 +56,7 @@ class SerialTxFromTopic:
 
         # Now using our own message type:
         invkin_command = np.array(message.invkin_control)
+        invkin_state = np.array(message.invkin_ref_state)
 
         # A discussion on the length of the string:
         # It may be bad to do more than a 32-character message over UART, that's pretty long.
@@ -68,20 +71,36 @@ class SerialTxFromTopic:
 
         # We seem to be getting some mis-aligned commands.
         # So, before anything else, send out a "clear" every time.
-        self.serial_port.write("\n")
+        #self.serial_port.write("\n")
         # give the PSoC a moment
-        # maybe 20 ms?
-        rospy.sleep(0.02)
-        self.serial_port.write("c\n")
-        rospy.sleep(0.02)
-        self.serial_port.write("c\n")
-        rospy.sleep(0.02)
+        # maybe 20 ms? 
+        rospy.sleep(0.002)
+        #self.serial_port.write("c\n")
+        #rospy.sleep(0.002)
+        #self.serial_port.write("c\n")
+        #rospy.sleep(0.02)
 
         # Thanks to our friends on stackoverflow (https://stackoverflow.com/questions/21008858/formatting-floats-in-a-numpy-array),
         # a nice way to format w/ only certain precision is
-        def ik_cmd_formatter(x): return "%.8f" % x
+        def ik_cmd_formatter(x): return "%.5f" % x
         # The result string will be
-        cmd_string = "u"
+        device = int(invkin_state[0])
+        
+        cmd_string = "u."
+        if device == 0:
+            cmd_string += "ndd"   #no device
+        elif device == 1:
+            cmd_string += "las"   #laserscann
+        elif device == 2:
+            cmd_string += "imu"   #imu
+        elif device == 3:
+            cmd_string += "whe"   #wheel odom
+        else:
+            cmd_string += "nnn"   #no name
+
+        cmd_string += "."
+        cmd_string += str(long(invkin_state[1]))
+
         # and we can concatenate each float to it.
         for i in range(invkin_command.shape[-1]):
             # Add to the command string, with a preceeding space

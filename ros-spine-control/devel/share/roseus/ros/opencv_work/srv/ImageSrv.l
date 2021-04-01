@@ -103,9 +103,9 @@
 (setf (get opencv_work::ImageSrvRequest :md5sum-) "ba55116f263d40ea8759822097ad63d4")
 (setf (get opencv_work::ImageSrvRequest :datatype-) "opencv_work/ImageSrvRequest")
 (setf (get opencv_work::ImageSrvRequest :definition-)
-      "
+      "# An empty request
 ---
-
+# A response containing image data
 sensor_msgs/Image image_data
 
 
@@ -159,9 +159,9 @@ string frame_id
 (setf (get opencv_work::ImageSrvResponse :md5sum-) "ba55116f263d40ea8759822097ad63d4")
 (setf (get opencv_work::ImageSrvResponse :datatype-) "opencv_work/ImageSrvResponse")
 (setf (get opencv_work::ImageSrvResponse :definition-)
-      "
+      "# An empty request
 ---
-
+# A response containing image data
 sensor_msgs/Image image_data
 
 
