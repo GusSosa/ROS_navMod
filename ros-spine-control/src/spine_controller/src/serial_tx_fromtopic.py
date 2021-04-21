@@ -74,7 +74,7 @@ class SerialTxFromTopic:
         #self.serial_port.write("\n")
         # give the PSoC a moment
         # maybe 20 ms? 
-        rospy.sleep(0.002)
+        #rospy.sleep(0.002)
         #self.serial_port.write("c\n")
         #rospy.sleep(0.002)
         #self.serial_port.write("c\n")

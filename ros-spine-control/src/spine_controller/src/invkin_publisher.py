@@ -28,12 +28,14 @@ class SerialTxControlTopic:
       # wheels:     3
 
   def invkin_laser_publisher_callback(self, message):
+    rate = rospy.Rate(2) # ROS Rate at 5Hz
     SerialTxControlTopic.seq += 1
     hello_str = InvkinControlCommand(invkin_control = [message.x, message.y, message.theta, message.linear_velocity, message.angular_velocity], \
           invkin_ref_state =[1, SerialTxControlTopic.seq]) #laser scan = 1
     #hello_str = "invkin_control: 0\n %s" % rospy.get_time()
     #rospy.loginfo(hello_str)
     self.pub.publish(hello_str)
+    rate.sleep()
 
   def invkin_imu_publisher_callback(self, message):
     SerialTxControlTopic.seq2 += 1

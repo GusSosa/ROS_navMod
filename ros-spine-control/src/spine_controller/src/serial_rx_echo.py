@@ -28,7 +28,7 @@ def echo_to_terminal(device_name):
     # print(sys.version)
     # Hard-code a timeout for pyserial. This way, we can capture keyboard interrupts.
     # In seconds, presumably.
-    serial_timeout = 5
+    serial_timeout = 1
     # First, start up the ros node.
     rospy.init_node('serial_rx_echo', anonymous=False)
     # We'll publish to a topic as well as echo to the terminal.
@@ -54,7 +54,7 @@ def echo_to_terminal(device_name):
             # So, don't push anything. The string is overloaded as a boolean here.
             if from_psoc:
                 # Echo the input back to the terminal
-                print(from_psoc)
+                #print(from_psoc)
                 # and publish to the topic.
                 pub.publish(from_psoc)
         except rospy.ROSInterruptException:
